@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="es-cl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSE & Calidad Business Intelligence | Elecnor Chile 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body { font-family: 'Verdana', sans-serif; background-color: #f3f4f6; color: #000000 !important; margin: 0; padding: 0; text-transform: uppercase; }
+        .pbi-card { background: white; border-radius: 4px; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 380px; }
+        .pbi-card-header { padding: 10px 15px; font-size: 0.75rem; font-weight: bold; border-bottom: 2px solid #e2e8f0; background: #ffffff; color: #000000 !important; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .pbi-card-body { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; position: relative; }
+        .kpi-box { background: white; border-top: 4px solid #000000; padding: 10px; text-align: center; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .kpi-box h2 { font-size: 1.6rem; font-weight: 900; margin: 0; color: #000 !important; }
+        th { background: #bae6fd; color: #000000 !important; font-size: 0.65rem; padding: 10px; text-align: left; border-bottom: 2px solid #0ea5e9; }
+        td { font-size: 0.7rem; padding: 8px; border-bottom: 1px solid #cbd5e1; font-weight: bold; color: #000 !important; }
+        #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; padding: 20px; }
+        .modal-content { background: white; width: 95%; height: 90%; border-radius: 8px; display: flex; flex-direction: column; padding: 20px; margin: auto; }
+        .filter-select { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; color: #000; outline: none; width: 100%; }
+        .btn-expand { cursor: pointer; color: #0284c7; font-size: 0.7rem; text-decoration: underline; }
+        
+        /* Badges de Estado Obrasoft */
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; letter-spacing: 0.5px; text-align: center; }
+        .status-atrasado { background-color: #fee2e2; color: #b91c1c; border: 1px solid #ef4444; }
+        .status-alerta { background-color: #fef3c7; color: #b45309; border: 1px solid #f59e0b; }
+        .status-prazo { background-color: #dcfce7; color: #15803d; border: 1px solid #22c55e; }
+
+        /* Estilos de Calidad (NC) */
+        .th-nc-default { background-color: #bae6fd !important; color: #000 !important; border: 1px solid #93c5fd; }
+        .th-nc-yellow { background-color: #fef08a !important; color: #000 !important; border: 1px solid #fde047; }
+        .th-nc-green { background-color: #86efac !important; color: #000 !important; border: 1px solid #4ade80; }
+        .td-nc-abierto { background-color: #fef08a !important; color: #000 !important; font-weight: 900; text-align: center; }
+        .td-nc-concluido { background-color: #22c55e !important; color: #ffffff !important; font-weight: 900; text-align: center; }
+        .td-res-green { background-color: #86efac !important; color: #000000 !important; font-weight: 900; text-align: center; }
+        .td-res-yellow { background-color: #fde047 !important; color: #000000 !important; font-weight: 900; text-align: center; }
+        .td-res-red { background-color: #ef4444 !important; color: #ffffff !important; font-weight: 900; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="modalOverlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="font-bold text-black uppercase">VISUALIZACIÓN</h3>
+                <button onclick="closeModal()" class="bg-black text-white px-4 py-1 rounded">CERRAR X</button>
+            </div>
+            <div class="flex-grow"><canvas id="expandedChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="p-2 md:p-4">
+        <header class="flex justify-between items-center bg-white p-4 mb-4 shadow-sm border border-gray-200 relative">
+            <div class="flex items-center gap-6">
+                <!-- CONTENEDOR CON EL LOGO ELECNOR CHILE EN SVG NATIVO -->
+                <div class="w-[140px] md:w-[170px] h-[65px] flex items-center justify-center p-2 bg-white rounded border border-gray-100 shadow-xs">
+                    <svg viewBox="0 0 200 70" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 25 15 C 65 3, 110 32, 155 16 C 130 22, 75 14, 25 15 Z" fill="#f58220" />
+                        <text x="95" y="44" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="29" fill="#003d79" text-anchor="middle" letter-spacing="-1">elecnor</text>
+                        <text x="145" y="56" font-family="'Arial', sans-serif" font-weight="bold" font-size="12" fill="#003d79" text-anchor="middle">chile</text>
+                    </svg>
+                </div>
+                <div class="h-10 w-[2px] bg-black hidden md:block"></div>
+                <div>
+                    <h1 class="text-xs md:text-md font-black tracking-tight">ELECNOR CHILE | GESTIÓN DE SEGURIDAD & CALIDAD 2026</h1>
+                    <div id="statusSincronizacao" class="text-[10px] text-gray-500 font-bold normal-case mt-0.5">
+                        Conectando com o Google Planilhas...
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTÃO 3 PONTOS (MENÚ DE OPÇÕES E FILTROS) -->
+            <div class="relative" id="filterDropdownContainer">
+                <button onclick="toggleFilterMenu(event)" class="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 text-2xl font-black text-gray-800 transition-colors" title="Opciones y Filtros">
+                    &#8942;
+                </button>
+
+                <!-- PAINEL SUSPENSO -->
+                <div id="filterMenu" class="hidden absolute right-0 top-12 bg-white border border-gray-300 rounded shadow-2xl p-4 w-80 z-50 flex flex-col gap-3">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <span class="text-xs font-black text-black">MENÚ Y FILTROS GENERALES</span>
+                        <button onclick="toggleFilterMenu(event)" class="text-xs font-bold text-gray-500 hover:text-black">✕ CERRAR</button>
+                    </div>
+
+                    <button onclick="carregarDadosOnline()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-2 px-3 rounded text-[11px] font-black shadow flex items-center justify-center gap-2 transition-all">
+                        <span>🔄</span>
+                        <span>ACTUALIZAR DATOS ONLINE</span>
+                    </button>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="w-full bg-black hover:bg-gray-800 text-white py-2 px-3 rounded text-[11px] font-black shadow flex items-center justify-center gap-2 cursor-pointer transition-all">
+                            <input type="file" id="uploadInput" class="hidden" accept=".xlsx, .xls">
+                            <span>📂</span>
+                            <span>+ IMPORTAR EXCEL (HSE CHILE)</span>
+                        </label>
+
+                        <label class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-[11px] font-black shadow flex items-center justify-center gap-2 cursor-pointer transition-all">
+                            <input type="file" id="uploadQualityInput" class="hidden" accept=".xlsx, .xls">
+                            <span>📋</span>
+                            <span>+ IMPORTAR PLANILHA DE CALIDAD (NC)</span>
+                        </label>
+                    </div>
+
+                    <div class="border-t my-1"></div>
+                    
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold text-gray-700">ÁREA / SECTOR (GLOBAL):</label>
+                        <select id="filterSector" class="filter-select" onchange="aplicarFiltros()">
+                            <option value="ALL">TODOS LOS SECTORES</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold text-gray-700">RESPONSABLE / PERSONA (GLOBAL):</label>
+                        <select id="filterPerson" class="filter-select" onchange="aplicarFiltros()">
+                            <option value="ALL">TODAS LAS PERSONAS</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold text-red-600">SETOR (ATRASADOS OBRA):</label>
+                        <select id="filterSectorAtrasados" class="filter-select !border-red-300" onchange="aplicarFiltros()">
+                            <option value="ALL">TODOS LOS SECTORES</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold text-gray-700">MES (NEARMISS):</label>
+                        <select id="filterMonthNM" class="filter-select" onchange="aplicarFiltros()">
+                            <option value="ALL">TODOS LOS MESES (ACUMULADO)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold text-gray-700">MES (HSLIDER):</label>
+                        <select id="filterMonthHS" class="filter-select" onchange="aplicarFiltros()">
+                            <option value="ALL">TODOS LOS MESES (ACUMULADO)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="limparFiltros()" class="bg-gray-200 hover:bg-gray-300 text-black py-2 px-3 rounded text-xs font-black shadow flex items-center justify-center gap-1.5 transition-all mt-1">
+                        <span>🔄</span>
+                        <span>VOLVER / VER TODO</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI ROW (HSE) -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+            <div class="kpi-box"><p>INSP. SEGURT</p><h2 id="kpi-insp">0</h2></div>
+            <div class="kpi-box"><p>PENDIENTES CR</p><h2 id="kpi-pend">0</h2></div>
+            <div class="kpi-box"><p>NM TOTAL</p><h2 id="kpi-near">0</h2></div>
+            <div class="kpi-box"><p>TOTAL OBRA</p><h2 id="kpi-total-obrasoft">0</h2></div>
+            <div class="kpi-box"><p>HS ANUAL</p><h2 id="kpi-hslider">0</h2></div>
+            <div class="kpi-box" style="border-color: #f59e0b;"><p>EN EJECUCIÓN</p><h2 id="kpi-execucao">0</h2></div>
+            <div class="kpi-box" style="border-color: #3b82f6;"><p>EN VERIFICACIÓN</p><h2 id="kpi-verificacao">0</h2></div>
+            <div class="kpi-box" style="border-color: #ef4444;"><p>ATRASADOS (EN EJEC.)</p><h2 id="kpi-atrasados">0</h2></div>
+            <div class="kpi-box" style="border-color: #22c55e;"><p>FINALIZADOS</p><h2 id="kpi-finalizados">0</h2></div>
+            <div class="kpi-box" style="border-color: #db2777;"><p>INSP. MANUAL</p><h2 id="kpi-manual-total">0</h2></div>
+        </div>
+
+        <!-- FILA 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span>INSPECCIONES SEGURT POR PERSONA</span>
+                    <span class="btn-expand" onclick="expand('chartSegurt', 'INSPECCIONES SEGURT POR PERSONA')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-segurt"><canvas id="chartSegurt"></canvas></div></div>
+            </div>
+            
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span>INSPECCIONES MANUALES (MES VIGENTE)</span>
+                    <span class="btn-expand" onclick="expand('chartManual', 'INSPECCIONES MANUALES (REALIZADAS / PREVISTAS %)')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body">
+                    <div id="cont-manual" class="w-full h-full relative"><canvas id="chartManual"></canvas></div>
+                    <div id="msgManualVazio" class="hidden absolute inset-0 flex items-center justify-center p-4 text-center text-xs font-bold text-gray-500 bg-white bg-opacity-90">
+                        SIN INSPECCIONES MANUALES PROGRAMADAS PARA ESTA PERSONA
+                    </div>
+                </div>
+            </div>
+
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span>PENDIENTES CR POR PERSONA</span>
+                    <span class="btn-expand" onclick="expand('chartPendentes', 'PENDIENTES CR POR PERSONA')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-pend"><canvas id="chartPendentes"></canvas></div></div>
+            </div>
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span>NEARMISS VS DESVIACIONES POR MES</span>
+                    <span class="btn-expand" onclick="expand('chartNmAreas', 'NEARMISS VS DESVIACIONES POR MES')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><canvas id="chartNmAreas"></canvas></div>
+            </div>
+        </div>
+
+        <!-- FILA 2 (REORGANIZADA SEM O GRÁFICO REPETIDO) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span style="color:#ef4444">ATRASADOS POR PERSONA (EN EJEC.)</span>
+                    <span class="btn-expand" onclick="expand('chartAtrasadosP', 'ATRASADOS POR PERSONA (EN EJECUCIÓN)')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-atrasados"><canvas id="chartAtrasadosP"></canvas></div></div>
+            </div>
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span>CUMPLIMIENTO NEARMISS POR SECTOR (%)</span>
+                    <span class="btn-expand" onclick="expand('chartNmPorArea', 'CUMPLIMIENTO NEARMISS POR SECTOR (%)')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-nmarea"><canvas id="chartNmPorArea"></canvas></div></div>
+            </div>
+            <div class="pbi-card">
+                <div class="pbi-card-header">
+                    <span>CUMPLIMIENTO HSLIDER POR SECTOR (%)</span>
+                    <span class="btn-expand" onclick="expand('chartHsliderPorArea', 'CUMPLIMIENTO HSLIDER POR SECTOR (%)')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-hslider"><canvas id="chartHsliderPorArea"></canvas></div></div>
+            </div>
+        </div>
+
+        <!-- FILA 3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <div class="pbi-card lg:col-span-2">
+                <div class="pbi-card-header">
+                    <span>INSP. SEGURT: REALIZADAS / PROGRAMADAS (%)</span>
+                    <span class="btn-expand" onclick="expand('chartPlanificadasRealizadas', 'INSP. SEGURT REALIZADAS / PROGRAMADAS (%)')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-plan" style="min-height: 300px;"><canvas id="chartPlanificadasRealizadas"></canvas></div></div>
+            </div>
+            <div class="pbi-card lg:col-span-2">
+                <div class="pbi-card-header">
+                    <span>CUMPLIMIENTO POR SECTOR (PROGRAMADO VS REALIZADO %)</span>
+                    <span class="btn-expand" onclick="expand('chartCumplimientoSector', 'CUMPLIMIENTO POR SECTOR (%)')">[EXPANDIR]</span>
+                </div>
+                <div class="pbi-card-body"><div id="cont-sector" style="min-height: 300px;"><canvas id="chartCumplimientoSector"></canvas></div></div>
+            </div>
+        </div>
+
+        <!-- TABLA DETALLADA: DESVÍOS EN ETAPA DE EJECUCIÓN (OBRASOFT) -->
+        <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
+            <div class="pbi-card-header">
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-black text-black">DETALLADO: DESVÍOS EN ETAPA DE EJECUCIÓN (OBRASOFT)</span>
+                    <span id="badgeContadorExec" class="bg-gray-100 text-black px-2 py-0.5 rounded text-[11px] font-black border">0 REGISTROS</span>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- FILTRO POR SETOR DE ACORDO COM INSPECCIONESPLANIFICADAS -->
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] font-bold text-gray-700">SECTOR / ÁREA:</span>
+                        <select id="filterSectorTabelaObra" class="filter-select !w-44 !py-1 text-xs" onchange="renderizarTabelaExecucao()">
+                            <option value="ALL">TODOS LOS SECTORES</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] font-bold text-gray-700">STATUS (COL T):</span>
+                        <select id="filterStatusTabelaObra" class="filter-select !w-44 !py-1 text-xs" onchange="renderizarTabelaExecucao()">
+                            <option value="ALL">TODOS LOS ESTADOS</option>
+                            <option value="ATRASADO">🔴 ATRASADO</option>
+                            <option value="ALERTA">🟡 ATENCIÓN (≤ 3 DÍAS)</option>
+                            <option value="NOPRAZO">🟢 NO PRAZO / AL DÍA</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] font-bold text-gray-700">RESPONSABLE:</span>
+                        <select id="filterPersonTabelaObra" class="filter-select !w-56 !py-1 text-xs" onchange="renderizarTabelaExecucao()">
+                            <option value="ALL">TODAS LAS PERSONAS</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="p-0 overflow-y-auto" style="max-height: 350px;">
+                <table class="w-full">
+                    <thead class="sticky top-0 shadow-sm">
+                        <tr>
+                            <th style="width: 8%;">ID</th>
+                            <th style="width: 25%;">DESCRIPCIÓN</th>
+                            <th style="width: 25%;">PLAN DE ACCIÓN</th>
+                            <th style="width: 18%;">RESP. RESOLUCIÓN</th>
+                            <th style="width: 8%;">ETAPA</th>
+                            <th style="width: 8%;">PLAZO</th>
+                            <th style="width: 8%;">ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECCIONES DE CALIDAD (NC) -->
+        <!-- 1. TABELA NC CLIENTE -->
+        <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
+            <div class="pbi-card-header bg-[#bae6fd] !border-b-2 !border-[#0ea5e9]">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-black text-black">CONTROL DE NO CONFORMIDAD CLIENTE - SOLAR COPIAPÓ</span>
+                    <span id="badgeNCCliente" class="bg-white text-black px-2.5 py-0.5 rounded text-xs font-black border shadow-sm">0 NC REGISTRADAS</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-black">FILTRO STATUS:</span>
+                    <select id="filterStatusNCCliente" class="filter-select !w-56 !py-1 text-xs bg-white" onchange="renderizarTablasCalidad()">
+                        <option value="ALL">TODOS LOS STATUS</option>
+                        <option value="ABIERTO">ABIERTO / ABIERTA</option>
+                        <option value="CONCLUID">CONCLUÍDA / CONCLUÍDO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-0 overflow-x-auto overflow-y-auto" style="max-height: 450px;">
+                <table class="w-full border-collapse" style="min-width: 1200px;">
+                    <thead class="sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="th-nc-default" style="width: 32%;">DESCRIPCIÓN DEL NC</th>
+                            <th class="th-nc-default text-center" style="width: 10%;">NC NÚMERO</th>
+                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE EMISIÓN</th>
+                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE CIERRE PREVISTA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">DISCIPLINA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">FECHA DE LA ACCIÓN ELECNOR</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">STATUS ACTUAL</th>
+                            <th class="th-nc-default text-center" style="width: 6%;">DURACIÓN ÚLTIMO ESTADO</th>
+                            <th class="th-nc-default text-center" style="width: 6%;">FECHA DE CIERRE</th>
+                            <th class="th-nc-green text-center" style="width: 6%;">RESOLUCIÓN (DIAS)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyNCCliente">
+                        <tr>
+                            <td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">
+                                Cargando información online...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. TABELA NC SUBCONTRATISTA -->
+        <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
+            <div class="pbi-card-header bg-[#bbf7d0] !border-b-2 !border-[#22c55e]">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-black text-black">CONTROL DE NO CONFORMIDAD SUBCONTRATISTA - SOLAR COPIAPÓ</span>
+                    <span id="badgeNCSub" class="bg-white text-black px-2.5 py-0.5 rounded text-xs font-black border shadow-sm">0 NC REGISTRADAS</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-black">FILTRO STATUS:</span>
+                    <select id="filterStatusNCSub" class="filter-select !w-56 !py-1 text-xs bg-white" onchange="renderizarTablasCalidad()">
+                        <option value="ALL">TODOS LOS STATUS</option>
+                        <option value="ABIERTO">ABIERTO / ABIERTA</option>
+                        <option value="CONCLUID">CONCLUÍDA / CONCLUÍDO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-0 overflow-x-auto overflow-y-auto" style="max-height: 450px;">
+                <table class="w-full border-collapse" style="min-width: 1250px;">
+                    <thead class="sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="th-nc-default" style="width: 30%;">DESCRIPCIÓN DEL NC</th>
+                            <th class="th-nc-default text-center" style="width: 10%;">NC NÚMERO</th>
+                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE EMISIÓN</th>
+                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE CIERRE PREVISTA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">DISCIPLINA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">FECHA DE LA ACCIÓN</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">CONTRATISTA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">STATUS ACTUAL</th>
+                            <th class="th-nc-default text-center" style="width: 6%;">FECHA DE CIERRE</th>
+                            <th class="th-nc-green text-center" style="width: 6%;">RESOLUCIÓN (DIAS)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyNCSub">
+                        <tr>
+                            <td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">
+                                Cargando información online...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. TABELA NC INTERNAS -->
+        <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
+            <div class="pbi-card-header bg-[#fed7aa] !border-b-2 !border-[#f97316]">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-black text-black">CONTROL INTERNO DE NO CONFORMIDAD - SOLAR COPIAPÓ</span>
+                    <span id="badgeNCInt" class="bg-white text-black px-2.5 py-0.5 rounded text-xs font-black border shadow-sm">0 NC REGISTRADAS</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-black">FILTRO STATUS:</span>
+                    <select id="filterStatusNCInt" class="filter-select !w-56 !py-1 text-xs bg-white" onchange="renderizarTablasCalidad()">
+                        <option value="ALL">TODOS LOS STATUS</option>
+                        <option value="ABIERTO">ABIERTO / ABIERTA</option>
+                        <option value="CONCLUID">CONCLUÍDO / CONCLUÍDA</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-0 overflow-x-auto overflow-y-auto" style="max-height: 450px;">
+                <table class="w-full border-collapse" style="min-width: 1250px;">
+                    <thead class="sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="th-nc-default" style="width: 30%;">DESCRIPCIÓN DEL NC</th>
+                            <th class="th-nc-default text-center" style="width: 10%;">NC NÚMERO</th>
+                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE EMISIÓN</th>
+                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE CIERRE PREVISTA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">DISCIPLINA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">FECHA DE LA ACCIÓN</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">CONTRATISTA / ÁREA</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">STATUS ACTUAL</th>
+                            <th class="th-nc-default text-center" style="width: 6%;">FECHA DE CIERRE</th>
+                            <th class="th-nc-green text-center" style="width: 6%;">RESOLUCIÓN (DIAS)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyNCInt">
+                        <tr>
+                            <td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">
+                                Cargando información online...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const SPREADSHEET_ID_HSE = '14_nZU83Nrd-YczoFtZ_q5O40xEyxF2h0PS-hsiAcoRU';
+        const SPREADSHEET_ID_CALIDAD = '1KY5o6pmAScXWo2Rj-wym7rRNPIZCsD1f6LbZe7dznsA';
+
+        Chart.register(ChartDataLabels);
+        let charts = {};
+        let modalChart = null;
+
+        let globalRawData = {
+            segurtPorNome: {},
+            planificadas: [],
+            setoresList: new Set(),
+            pessoasList: new Set(),
+            pessoaSectorMap: {}, // Mapeamento Nome -> Setor (baseado em INSPECCIONESPLANIFICADAS)
+            manual: [],
+            nearmiss: { mesesHeaders: [], mesesNM: [], mesesDesv: [], totalNM: 0, sectorsNR: {} },
+            hslider: { mesesHeaders: [], sectorsData: {}, totalHS: 0, activeMonthsCount: 6 },
+            obra: { mJ: {}, mJExec: {}, mA: {}, kpis: { t:0, e:0, v:0, a:0, f:0 }, rowsExecucao: [] },
+            pendientes: {},
+            ncCliente: [],
+            ncSub: [],
+            ncInternas: []
+        };
+
+        const mesesLabelsChile = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+        const mesesCores = ["#004a99", "#db2777", "#ffb900", "#4f46e5", "#0ea5e9", "#22c55e", "#ef4444", "#8b5cf6", "#f97316", "#06b6d4", "#ec4899", "#10b981", "#6366f1", "#14b8a6", "#f43f5e"];
+
+        function numParaColunaLetra(num) {
+            let str = "";
+            let n = num;
+            while (n >= 0) {
+                str = String.fromCharCode((n % 26) + 65) + str;
+                n = Math.floor(n / 26) - 1;
+            }
+            return str;
+        }
+
+        function fetchSheetDataJSONP(sheetId, sheetName) {
+            return new Promise((resolve) => {
+                const callbackName = 'gviz_' + Math.random().toString(36).substring(2, 9);
+                const script = document.createElement('script');
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    resolve(null);
+                }, 10000);
+
+                function cleanup() {
+                    clearTimeout(timeout);
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    delete window[callbackName];
+                }
+
+                window[callbackName] = function(json) {
+                    cleanup();
+                    if (!json || !json.table) {
+                        resolve(null);
+                        return;
+                    }
+                    const sheetObj = {};
+                    const cols = json.table.cols || [];
+                    const rows = json.table.rows || [];
+
+                    cols.forEach((col, cIdx) => {
+                        const colLetra = numParaColunaLetra(cIdx);
+                        const label = col ? (col.label || col.id || "") : "";
+                        sheetObj[colLetra + '1'] = { v: label, w: String(label), t: 's' };
+                    });
+
+                    rows.forEach((row, rIdx) => {
+                        const rowNum = rIdx + 2;
+                        if (row && row.c) {
+                            row.c.forEach((cell, cIdx) => {
+                                if (cell && cell.v !== null && cell.v !== undefined) {
+                                    const colLetra = numParaColunaLetra(cIdx);
+                                    let valor = cell.v;
+                                    
+                                    if (typeof valor === 'string' && valor.startsWith('Date(')) {
+                                        const p = valor.match(/\d+/g);
+                                        if (p && p.length >= 3) {
+                                            valor = new Date(p[0], p[1], p[2]);
+                                        }
+                                    }
+                                    
+                                    sheetObj[colLetra + rowNum] = { 
+                                        v: valor, 
+                                        w: cell.f || (valor instanceof Date ? valor.toLocaleDateString('es-CL') : String(valor)),
+                                        t: typeof valor === 'number' ? 'n' : (valor instanceof Date ? 'd' : 's')
+                                    };
+                                }
+                            });
+                        }
+                    });
+
+                    const totalRows = rows.length + 2;
+                    const maxColIdx = Math.max(cols.length - 1, 45);
+                    sheetObj['!ref'] = `A1:${numParaColunaLetra(maxColIdx)}${totalRows}`;
+                    resolve(sheetObj);
+                };
+
+                script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${callbackName}&t=${Date.now()}`;
+                script.onerror = function() {
+                    cleanup();
+                    resolve(null);
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        async function carregarDadosOnline() {
+            const statusLabel = document.getElementById("statusSincronizacao");
+            if (statusLabel) statusLabel.innerText = "⏳ Sincronizando com o Google Planilhas...";
+
+            try {
+                const wb = { Sheets: {}, SheetNames: [] };
+                
+                const abasHSE = [
+                    "SEGURT",
+                    "TABELA OBRASOFT",
+                    "SEGURT-PENDIENTE-CR",
+                    "SEGURT-MANUAL",
+                    "NEARMISS",
+                    "HSLIDER",
+                    "INSPECCIONESPLANIFICADAS"
+                ];
+
+                const abasCalidad = [
+                    "Contr. NC Cliente",
+                    "Contr. NC Subcontratista",
+                    "Contr. NC Internas"
+                ];
+
+                const promessasHSE = abasHSE.map(async nome => {
+                    const sheet = await fetchSheetDataJSONP(SPREADSHEET_ID_HSE, nome);
+                    return { nome, sheet };
+                });
+
+                const promessasCalidad = abasCalidad.map(async nome => {
+                    const sheet = await fetchSheetDataJSONP(SPREADSHEET_ID_CALIDAD, nome);
+                    return { nome, sheet };
+                });
+
+                const resultados = await Promise.all([...promessasHSE, ...promessasCalidad]);
+
+                let contagem = 0;
+                resultados.forEach(res => {
+                    if (res && res.sheet) {
+                        wb.Sheets[res.nome] = res.sheet;
+                        wb.SheetNames.push(res.nome);
+                        contagem++;
+                    }
+                });
+
+                if (contagem === 0) throw new Error("Não foi possível obter dados da folha online.");
+
+                carregarDadosBrutos(wb);
+                carregarDadosCalidad(wb);
+
+                renderizarDashboard();
+                renderizarTablasCalidad();
+
+                const agora = new Date().toLocaleTimeString('es-CL');
+                if (statusLabel) statusLabel.innerHTML = `🟢 Sincronizado online com sucesso às ${agora}`;
+
+            } catch (err) {
+                console.error("Erro na sincronização:", err);
+                if (statusLabel) {
+                    statusLabel.innerHTML = `⚠️ Erro ao sincronizar. Verifique o compartilhamento público das planilhas.`;
+                }
+            }
+        }
+
+        function toggleFilterMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById("filterMenu");
+            menu.classList.toggle("hidden");
+        }
+
+        document.addEventListener("click", (e) => {
+            const container = document.getElementById("filterDropdownContainer");
+            const menu = document.getElementById("filterMenu");
+            if (container && !container.contains(e.target) && menu && !menu.classList.contains("hidden")) {
+                menu.classList.add("hidden");
+            }
+        });
+
+        const superClean = (s) => {
+            if (!s) return "";
+            return s.toString()
+                .trim()
+                .toUpperCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/Ç/g, "C")
+                .replace(/[^A-Z0-9 ]/g, "")
+                .replace(/\s+/g, " ")
+                .trim();
+        };
+
+        const getNameKeys = (s) => {
+            const clean = superClean(s);
+            if (!clean) return [];
+            const words = clean.split(" ").filter(w => !["DE", "DA", "DO", "DOS", "DAS", "E", "Y"].includes(w));
+            if (words.length === 0) return [];
+            const firstLast = words.length === 1 ? words[0] : `${words[0]} ${words[words.length - 1]}`;
+            const allSorted = [...words].sort().join(" ");
+            return [firstLast, allSorted];
+        };
+
+        const findSheet = (wb, keyword) => {
+            const cleanKey = superClean(keyword);
+            const key = Object.keys(wb.Sheets).find(k => {
+                const cleanName = superClean(k);
+                if (cleanKey === "SEGURT") return cleanName === "SEGURT" || cleanName === "SERGUT";
+                if (cleanKey === "SEGURTMANUAL" || cleanKey === "MANUAL") {
+                    return cleanName === "SEGURTMANUAL" || cleanName === "SEGURT MANUAL" || cleanName === "SEGURT-MANUAL" || cleanName.includes("MANUAL");
+                }
+                if (cleanKey === "HSLIDER") return cleanName === "HSLIDER" || cleanName.includes("HSLIDER") || cleanName.includes("LIDER");
+                if (cleanKey === "OBRA") return cleanName === "OBRA" || cleanName === "TABELA OBRASOFT" || cleanName.includes("OBRA") || cleanName.includes("OBRASOFT");
+                if (cleanKey === "PENDIENTE") return cleanName === "PENDIENTE" || cleanName === "SEGURT-PENDIENTE-CR" || cleanName.includes("PENDIENT");
+                return cleanName.includes(cleanKey);
+            });
+            return key ? wb.Sheets[key] : null;
+        };
+
+        const formatarData = (val) => {
+            if (!val) return "";
+            if (val instanceof Date) return val.toLocaleDateString('es-CL');
+            if (typeof val === 'number') {
+                const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+                if (!isNaN(d)) return d.toLocaleDateString('es-CL');
+            }
+            return String(val).trim();
+        };
+
+        const getResolucionClass = (val) => {
+            if (val === "" || val === null || val === undefined) return "text-center";
+            const num = parseFloat(val);
+            if (isNaN(num)) return "text-center";
+            if (num > 30) return "td-res-red";
+            if (num > 15) return "td-res-yellow";
+            return "td-res-green";
+        };
+
+        const matchStatusFilter = (itemStatus, filterValue) => {
+            if (filterValue === "ALL") return true;
+            const stClean = superClean(itemStatus);
+            if (filterValue === "ABIERTO") return stClean.includes("ABIER") || stClean.includes("ABERT");
+            if (filterValue === "CONCLUID") return stClean.includes("CONCLU");
+            return stClean.includes(superClean(filterValue));
+        };
+
+        const getOptions = (horiz, color = '#000000', stack = false, customMode = null, metaArray = [], clickType = null) => ({
+            indexAxis: horiz ? 'y' : 'x',
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: horiz ? { right: 135 } : { top: 25 } },
+            onClick: (e, activeElements, chart) => {
+                if (activeElements && activeElements.length > 0) {
+                    const idx = activeElements[0].index;
+                    const label = chart.data.labels[idx];
+                    if (clickType === 'person') {
+                        const currentVal = document.getElementById("filterPerson").value;
+                        document.getElementById("filterPerson").value = (currentVal === label) ? "ALL" : label;
+                        aplicarFiltros();
+                    } else if (clickType === 'sector') {
+                        const currentVal = document.getElementById("filterSector").value;
+                        document.getElementById("filterSector").value = (currentVal === label) ? "ALL" : label;
+                        aplicarFiltros();
+                    }
+                }
+            },
+            plugins: { 
+                legend: { display: stack, position: 'bottom', labels: { color: '#000000', font: { size: 8, weight: 'bold' }, boxWidth: 10 } }, 
+                datalabels: { 
+                    display: true,
+                    anchor: stack ? 'center' : 'end', 
+                    align: stack ? 'center' : (horiz ? 'right' : 'top'), 
+                    color: '#000000',
+                    offset: 6,
+                    font: { family: 'Verdana', weight: 'bold', size: 9 },
+                    formatter: function(value, context) {
+                        if (customMode === 'pessoas' || customMode === 'nearmiss' || customMode === 'hslider' || customMode === 'manual') {
+                            const item = metaArray[context.dataIndex];
+                            if (item) return `${item.realizado}/${item.previsto} (${item.porcentagem}%)`;
+                            return value + '%';
+                        }
+                        if (customMode === 'pct') return value + '%';
+                        return value > 0 ? value : (stack ? '' : 0); 
+                    }
+                } 
+            },
+            scales: { 
+                x: { stacked: stack, grid: { display: false }, ticks: { color: '#000000', font: { family: 'Verdana', weight: 'bold', size: 9 } } }, 
+                y: { stacked: stack, grid: { display: false }, ticks: { color: '#000000', font: { family: 'Verdana', weight: 'bold', size: 8 } } } 
+            }
+        });
+
+        function expand(id, title) {
+            const src = charts[id]; if (!src) return;
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('modalTitle').innerText = title;
+            if (modalChart) modalChart.destroy();
+            let mode = null;
+            if (id === 'chartPlanificadasRealizadas') mode = 'pessoas';
+            else if (id === 'chartManual') mode = 'manual';
+            else if (id === 'chartNmPorArea') mode = 'nearmiss';
+            else if (id === 'chartHsliderPorArea') mode = 'hslider';
+            else if (id === 'chartCumplimientoSector') mode = 'pct';
+            modalChart = new Chart(document.getElementById('expandedChart'), {
+                type: 'bar', data: JSON.parse(JSON.stringify(src.data)),
+                options: {
+                    ...getOptions(src.options.indexAxis === 'y', '#000000', !!src.data.datasets[1], mode, src._metaArray || []),
+                    plugins: {
+                        ...getOptions(src.options.indexAxis === 'y', '#000000', !!src.data.datasets[1], mode, src._metaArray || []).plugins,
+                        tooltip: src.options.plugins && src.options.plugins.tooltip ? src.options.plugins.tooltip : {}
+                    }
+                }
+            });
+        }
+        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+        // LISTENERS DE IMPORTAÇÃO MANUAL
+        document.getElementById('uploadInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async evt => {
+                const arrayBuf = evt.target.result;
+                const wb = XLSX.read(new Uint8Array(arrayBuf), { type: 'array', cellDates: true });
+                carregarDadosBrutos(wb);
+                renderizarDashboard();
+                const menu = document.getElementById("filterMenu");
+                if (menu) menu.classList.add("hidden");
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('uploadQualityInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async evt => {
+                const arrayBuf = evt.target.result;
+                const wb = XLSX.read(new Uint8Array(arrayBuf), { type: 'array', cellDates: true });
+                carregarDadosCalidad(wb);
+                renderizarTablasCalidad();
+                const menu = document.getElementById("filterMenu");
+                if (menu) menu.classList.add("hidden");
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function carregarDadosCalidad(wb) {
+            globalRawData.ncCliente = [];
+            globalRawData.ncSub = [];
+            globalRawData.ncInternas = [];
+
+            const statusValidos = ["ABIERTO", "ABIERTA", "CONCLUÍDA", "CONCLUIDA", "CONCLUÍDO", "CONCLUIDO", "AGUARDANDO PARECER DO CLIENTE"];
+
+            const wsCliente = findSheet(wb, "Contr. NC Cliente") || findSheet(wb, "NC Cliente");
+            if (wsCliente) {
+                for (let r = 8; r <= 150; r++) {
+                    const cellStatus = wsCliente['K' + r];
+                    if (cellStatus && cellStatus.v !== undefined && cellStatus.v !== null) {
+                        const statusRaw = cellStatus.v.toString().trim().toUpperCase();
+                        if (statusValidos.some(st => statusRaw.includes(st))) {
+                            const desc = wsCliente['B' + r] ? wsCliente['B' + r].v : "";
+                            const ncNum = wsCliente['D' + r] ? wsCliente['D' + r].v : "";
+                            globalRawData.ncCliente.push({
+                                desc: desc ? desc.toString().trim() : "",
+                                ncNum: ncNum ? ncNum.toString().trim() : "",
+                                emision: formatarData(wsCliente['E' + r] ? wsCliente['E' + r].v : ""),
+                                cierrePrev: formatarData(wsCliente['F' + r] ? wsCliente['F' + r].v : ""),
+                                disciplina: wsCliente['G' + r] ? wsCliente['G' + r].v.toString().trim().toUpperCase() : "",
+                                accionElecnor: formatarData(wsCliente['H' + r] ? wsCliente['H' + r].v : ""),
+                                status: statusRaw,
+                                duracion: wsCliente['L' + r] && wsCliente['L' + r].v !== undefined ? wsCliente['L' + r].v : "",
+                                fechaCierre: formatarData(wsCliente['M' + r] ? wsCliente['M' + r].v : ""),
+                                resolucion: wsCliente['N' + r] && wsCliente['N' + r].v !== undefined ? wsCliente['N' + r].v : ""
+                            });
+                        }
+                    }
+                }
+            }
+
+            const wsSub = findSheet(wb, "Contr. NC Subcontratista") || findSheet(wb, "Subcontratista");
+            if (wsSub) {
+                for (let r = 8; r <= 150; r++) {
+                    const cellNC = wsSub['D' + r];
+                    const cellStatus = wsSub['L' + r];
+                    if (cellNC && cellNC.v && cellStatus && cellStatus.v) {
+                        const statusRaw = cellStatus.v.toString().trim().toUpperCase();
+                        if (statusValidos.some(st => statusRaw.includes(st))) {
+                            const desc = wsSub['B' + r] ? wsSub['B' + r].v : "";
+                            globalRawData.ncSub.push({
+                                desc: desc ? desc.toString().trim() : "",
+                                ncNum: cellNC.v.toString().trim(),
+                                emision: formatarData(wsSub['E' + r] ? wsSub['E' + r].v : ""),
+                                cierrePrev: formatarData(wsSub['F' + r] ? wsSub['F' + r].v : ""),
+                                disciplina: wsSub['G' + r] ? wsSub['G' + r].v.toString().trim().toUpperCase() : "",
+                                accionElecnor: formatarData(wsSub['H' + r] ? wsSub['H' + r].v : ""),
+                                contratista: wsSub['K' + r] ? wsSub['K' + r].v.toString().trim().toUpperCase() : "",
+                                status: statusRaw,
+                                fechaCierre: formatarData(wsSub['N' + r] ? wsSub['N' + r].v : ""),
+                                resolucion: wsSub['O' + r] && wsSub['O' + r].v !== undefined ? wsSub['O' + r].v : ""
+                            });
+                        }
+                    }
+                }
+            }
+
+            const wsInt = findSheet(wb, "Contr. NC Internas") || findSheet(wb, "NC Internas");
+            if (wsInt) {
+                for (let r = 8; r <= 150; r++) {
+                    const cellNC = wsInt['D' + r];
+                    const cellStatus = wsInt['L' + r];
+                    if (cellNC && cellNC.v && cellStatus && cellStatus.v) {
+                        const statusRaw = cellStatus.v.toString().trim().toUpperCase();
+                        if (statusValidos.some(st => statusRaw.includes(st))) {
+                            const desc = wsInt['B' + r] ? wsInt['B' + r].v : "";
+                            globalRawData.ncInternas.push({
+                                desc: desc ? desc.toString().trim() : "",
+                                ncNum: cellNC.v.toString().trim(),
+                                emision: formatarData(wsInt['E' + r] ? wsInt['E' + r].v : ""),
+                                cierrePrev: formatarData(wsInt['F' + r] ? wsInt['F' + r].v : ""),
+                                disciplina: wsInt['G' + r] ? wsInt['G' + r].v.toString().trim().toUpperCase() : "",
+                                accionElecnor: formatarData(wsInt['H' + r] ? wsInt['H' + r].v : ""),
+                                contratista: wsInt['K' + r] ? wsInt['K' + r].v.toString().trim().toUpperCase() : "",
+                                status: statusRaw,
+                                fechaCierre: formatarData(wsInt['N' + r] ? wsInt['N' + r].v : ""),
+                                resolucion: wsInt['O' + r] && wsInt['O' + r].v !== undefined ? wsInt['O' + r].v : ""
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        function renderizarTablasCalidad() {
+            const tbodyCliente = document.getElementById("tableBodyNCCliente");
+            tbodyCliente.innerHTML = "";
+            const filtroCliente = document.getElementById("filterStatusNCCliente").value;
+            let listCliente = globalRawData.ncCliente.filter(item => matchStatusFilter(item.status, filtroCliente));
+            document.getElementById("badgeNCCliente").innerText = `${listCliente.length} NC REGISTRADAS`;
+
+            if (listCliente.length === 0) {
+                tbodyCliente.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Cliente para este filtro.</td></tr>`;
+            } else {
+                listCliente.forEach(nc => {
+                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
+                    const classStatus = isAbierto ? "td-nc-abierto" : (nc.status.includes("CONCLU") ? "td-nc-concluido" : "text-center font-bold text-gray-800");
+                    const classResolucion = getResolucionClass(nc.resolucion);
+
+                    tbodyCliente.innerHTML += `
+                        <tr>
+                            <td class="text-xs text-gray-800 font-normal leading-relaxed text-justify px-3 py-2 border border-gray-200">${nc.desc}</td>
+                            <td class="font-black text-xs text-gray-900 text-center whitespace-nowrap px-2 py-2 border border-gray-200">${nc.ncNum}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.emision}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.cierrePrev}</td>
+                            <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.disciplina}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
+                            <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
+                            <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.duracion}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.fechaCierre}</td>
+                            <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const tbodySub = document.getElementById("tableBodyNCSub");
+            tbodySub.innerHTML = "";
+            const filtroSub = document.getElementById("filterStatusNCSub").value;
+            let listSub = globalRawData.ncSub.filter(item => matchStatusFilter(item.status, filtroSub));
+            document.getElementById("badgeNCSub").innerText = `${listSub.length} NC REGISTRADAS`;
+
+            if (listSub.length === 0) {
+                tbodySub.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Subcontratista para este filtro.</td></tr>`;
+            } else {
+                listSub.forEach(nc => {
+                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
+                    const classStatus = isAbierto ? "td-nc-abierto" : (nc.status.includes("CONCLU") ? "td-nc-concluido" : "text-center font-bold text-gray-800");
+                    const classResolucion = getResolucionClass(nc.resolucion);
+
+                    tbodySub.innerHTML += `
+                        <tr>
+                            <td class="text-xs text-gray-800 font-normal leading-relaxed text-justify px-3 py-2 border border-gray-200">${nc.desc}</td>
+                            <td class="font-black text-xs text-gray-900 text-center whitespace-nowrap px-2 py-2 border border-gray-200">${nc.ncNum}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.emision}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.cierrePrev}</td>
+                            <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.disciplina}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
+                            <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
+                            <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.fechaCierre}</td>
+                            <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const tbodyInt = document.getElementById("tableBodyNCInt");
+            tbodyInt.innerHTML = "";
+            const filtroInt = document.getElementById("filterStatusNCInt").value;
+            let listInt = globalRawData.ncInternas.filter(item => matchStatusFilter(item.status, filtroInt));
+            document.getElementById("badgeNCInt").innerText = `${listInt.length} NC REGISTRADAS`;
+
+            if (listInt.length === 0) {
+                tbodyInt.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Internas para este filtro.</td></tr>`;
+            } else {
+                listInt.forEach(nc => {
+                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
+                    const classStatus = isAbierto ? "td-nc-abierto" : (nc.status.includes("CONCLU") ? "td-nc-concluido" : "text-center font-bold text-gray-800");
+                    const classResolucion = getResolucionClass(nc.resolucion);
+
+                    tbodyInt.innerHTML += `
+                        <tr>
+                            <td class="text-xs text-gray-800 font-normal leading-relaxed text-justify px-3 py-2 border border-gray-200">${nc.desc}</td>
+                            <td class="font-black text-xs text-gray-900 text-center whitespace-nowrap px-2 py-2 border border-gray-200">${nc.ncNum}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.emision}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.cierrePrev}</td>
+                            <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.disciplina}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
+                            <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
+                            <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.fechaCierre}</td>
+                            <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Função auxiliar para conferir se uma pessoa é de QUALIDADE ou outro setor
+        function obterSetorDaPessoa(nome) {
+            if (!nome) return "SIN ÁREA";
+            const clean = superClean(nome);
+            if (globalRawData.pessoaSectorMap[clean]) return globalRawData.pessoaSectorMap[clean];
+
+            const keys = getNameKeys(nome);
+            for (let k of keys) {
+                if (globalRawData.pessoaSectorMap[k]) return globalRawData.pessoaSectorMap[k];
+            }
+
+            for (let p of globalRawData.planificadas) {
+                if (p.keys && p.keys.some(pk => keys.includes(pk))) {
+                    return p.setor;
+                }
+            }
+            return "SIN ÁREA";
+        }
+
+        function carregarDadosBrutos(wb) {
+            globalRawData.segurtPorNome = {};
+            globalRawData.planificadas = [];
+            globalRawData.setoresList = new Set();
+            globalRawData.pessoasList = new Set();
+            globalRawData.pessoaSectorMap = {};
+            globalRawData.manual = [];
+            globalRawData.nearmiss = { mesesHeaders: [], mesesNM: [], mesesDesv: [], totalNM: 0, sectorsNR: {} };
+            globalRawData.hslider = { mesesHeaders: [], sectorsData: {}, totalHS: 0, activeMonthsCount: 6 };
+            globalRawData.obra = { mJ: {}, mJExec: {}, mA: {}, kpis: { t:0, e:0, v:0, a:0, f:0 }, rowsExecucao: [] };
+            globalRawData.pendientes = {};
+
+            const colsMeses = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
+
+            // 1. SEGURT
+            const wsS = findSheet(wb, "SEGURT");
+            if (wsS) {
+                for (let r = 9; r <= 1500; r++) {
+                    const cell = wsS['K' + r];
+                    if (cell && cell.v !== undefined && cell.v !== null) {
+                        const nome = cell.v.toString().trim().toUpperCase();
+                        const clean = superClean(nome);
+                        if (clean && !clean.includes("RESPONSABLE") && !clean.includes("INSPECCION")) {
+                            globalRawData.segurtPorNome[nome] = (globalRawData.segurtPorNome[nome] || 0) + 1;
+                            globalRawData.pessoasList.add(nome);
+                        }
+                    }
+                }
+            }
+
+            // 2. PLANIFICADAS (CONFERÊNCIA DE SETORES: SETORES, PUESTO DE TRABAJO, NOMBRE Y APELIDO)
+            const wsPlan = findSheet(wb, "INSPECCIONESPLANIFICADAS") || findSheet(wb, "PLANIFICADAS");
+            if (wsPlan) {
+                const metasEspeciais20 = ["JHERALDY HIDALGO", "ADILTON MORAIS", "MARIA TORRES", "GEORGE BARRAZA", "BRIAN ULLOA"];
+                for (let r = 2; r <= 200; r++) {
+                    const cellA = wsPlan['A' + r]; // SETORES
+                    const cellC = wsPlan['C' + r]; // NOMBRE Y APELIDO
+                    const cellD = wsPlan['D' + r];
+
+                    if (cellC && cellC.v) {
+                        const nomeOriginal = cellC.v.toString().trim().toUpperCase();
+                        const setorOriginal = cellA && cellA.v ? cellA.v.toString().trim().toUpperCase() : "SIN ÁREA";
+                        
+                        let qtdPrevista = 0;
+                        if (cellD && cellD.v !== undefined) {
+                            qtdPrevista = parseFloat(String(cellD.v).replace(',', '.').trim()) || 0;
+                        }
+
+                        if (qtdPrevista === 0) {
+                            const keys = getNameKeys(nomeOriginal);
+                            if (keys.some(k => metasEspeciais20.includes(k))) {
+                                qtdPrevista = 20;
+                            } else {
+                                qtdPrevista = 4;
+                            }
+                        }
+
+                        const pKeys = getNameKeys(nomeOriginal);
+
+                        globalRawData.planificadas.push({
+                            nome: nomeOriginal,
+                            setor: setorOriginal,
+                            previsto: qtdPrevista,
+                            keys: pKeys
+                        });
+
+                        globalRawData.pessoaSectorMap[nomeOriginal] = setorOriginal;
+                        globalRawData.pessoaSectorMap[superClean(nomeOriginal)] = setorOriginal;
+                        pKeys.forEach(k => {
+                            globalRawData.pessoaSectorMap[k] = setorOriginal;
+                        });
+
+                        globalRawData.setoresList.add(setorOriginal);
+                        globalRawData.pessoasList.add(nomeOriginal);
+                    }
+                }
+            }
+
+            // 3. ABA SEGURT-MANUAL
+            const wsM = findSheet(wb, "SEGURT-MANUAL") || findSheet(wb, "SEGURTMANUAL") || findSheet(wb, "MANUAL");
+            if (wsM) {
+                const matrix = XLSX.utils.sheet_to_json(wsM, { header: 1, defval: "" });
+                let nameColIdx = 1;
+                let prevColIdx = 2;
+                let realColIdx = 3;
+                let startRowIdx = 1;
+
+                for (let rIdx = 0; rIdx < Math.min(10, matrix.length); rIdx++) {
+                    const row = matrix[rIdx];
+                    if (!row || !Array.isArray(row)) continue;
+                    let foundHeader = false;
+
+                    row.forEach((colVal, cIdx) => {
+                        const str = superClean(colVal);
+                        if (str.includes("NOMBRE") || str.includes("APELIDO") || str.includes("APELLIDO")) {
+                            nameColIdx = cIdx;
+                            foundHeader = true;
+                        }
+                        if (str.includes("PREVISTO")) {
+                            prevColIdx = cIdx;
+                            foundHeader = true;
+                        }
+                        if (str.includes("REALIZADO")) {
+                            realColIdx = cIdx;
+                            foundHeader = true;
+                        }
+                    });
+
+                    if (foundHeader) {
+                        startRowIdx = rIdx + 1;
+                        break;
+                    }
+                }
+
+                for (let rIdx = startRowIdx; rIdx < matrix.length; rIdx++) {
+                    const row = matrix[rIdx];
+                    if (!row || !Array.isArray(row)) continue;
+
+                    const rawName = row[nameColIdx] ? row[nameColIdx].toString().trim() : "";
+                    const cleanName = superClean(rawName);
+
+                    if (cleanName && !cleanName.includes("NOMBRE") && !cleanName.includes("TOTAL") && !cleanName.includes("PUESTO")) {
+                        const rawPrev = row[prevColIdx];
+                        const rawReal = row[realColIdx];
+
+                        const previsto = parseFloat(String(rawPrev).replace(',', '.').trim()) || 4;
+                        const realizado = parseFloat(String(rawReal).replace(',', '.').trim()) || 0;
+                        const pct = previsto > 0 ? Math.round((realizado / previsto) * 100) : 0;
+
+                        globalRawData.manual.push({
+                            nome: rawName.toUpperCase(),
+                            keys: getNameKeys(rawName),
+                            previsto: previsto,
+                            realizado: realizado,
+                            porcentagem: pct
+                        });
+
+                        globalRawData.pessoasList.add(rawName.toUpperCase());
+                    }
+                }
+            }
+
+            // 4. NEARMISS
+            const wsN = findSheet(wb, "NEARMISS");
+            if (wsN) {
+                const alphabet = ["C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q"];
+                let monthHeaders = [];
+                alphabet.forEach(col => {
+                    const hCell = wsN[col + '1'];
+                    if (hCell && hCell.v) {
+                        monthHeaders.push({ col: col, label: hCell.v.toString().trim() });
+                    }
+                });
+
+                if (monthHeaders.length === 0) {
+                    monthHeaders = alphabet.map((c, i) => ({ col: c, label: `M${i+1}` }));
+                }
+
+                globalRawData.nearmiss.mesesHeaders = monthHeaders;
+                globalRawData.nearmiss.mesesNM = Array(monthHeaders.length).fill(0);
+                globalRawData.nearmiss.mesesDesv = Array(monthHeaders.length).fill(0);
+
+                let currentSector = "";
+                let activeMonthsCount = 0;
+
+                for (let r = 2; r <= 100; r++) {
+                    const cellA = wsN['A' + r];
+                    const cellB = wsN['B' + r];
+
+                    if (cellA && cellA.v && cellA.v.toString().trim()) {
+                        currentSector = cellA.v.toString().replace("(NM)", "").trim().toUpperCase();
+                        globalRawData.setoresList.add(currentSector);
+                    }
+
+                    const tipoDoc = cellB && cellB.v ? cellB.v.toString().trim().toUpperCase() : "";
+
+                    if (currentSector && (tipoDoc === "NR" || tipoDoc.includes("NM") || (!cellB && cellA && cellA.v.toString().includes("(NM)")))) {
+                        if (!globalRawData.nearmiss.sectorsNR[currentSector]) {
+                            globalRawData.nearmiss.sectorsNR[currentSector] = { 
+                                realizadoTotal: 0, 
+                                porMes: {} 
+                            };
+                        }
+
+                        monthHeaders.forEach((m, idx) => {
+                            const valCell = wsN[m.col + r];
+                            const val = parseFloat(valCell ? valCell.v : 0) || 0;
+                            globalRawData.nearmiss.sectorsNR[currentSector].porMes[m.label] = val;
+                            if (val > 0) {
+                                globalRawData.nearmiss.sectorsNR[currentSector].realizadoTotal += val;
+                                globalRawData.nearmiss.totalNM += val;
+                                globalRawData.nearmiss.mesesNM[idx] += val;
+                                if (idx + 1 > activeMonthsCount) activeMonthsCount = idx + 1;
+                            }
+                        });
+                    } else if (tipoDoc === "DESVIACIONES" || tipoDoc.includes("DESV")) {
+                        monthHeaders.forEach((m, idx) => {
+                            const valCell = wsN[m.col + r];
+                            const val = parseFloat(valCell ? valCell.v : 0) || 0;
+                            if (val > 0) {
+                                globalRawData.nearmiss.mesesDesv[idx] += val;
+                            }
+                        });
+                    }
+                }
+
+                globalRawData.nearmiss.activeMonthsCount = Math.max(activeMonthsCount, 13);
+            }
+
+            // 5. HSLIDER
+            const wsH = findSheet(wb, "HSLIDER");
+            if (wsH) {
+                let monthHeadersHS = [];
+                colsMeses.forEach((c, idx) => {
+                    const hCell = wsH[c + '2'];
+                    const label = hCell && hCell.v ? hCell.v.toString().trim() : mesesLabelsChile[idx];
+                    monthHeadersHS.push({ col: c, label: label });
+                });
+                globalRawData.hslider.mesesHeaders = monthHeadersHS;
+
+                let activeMonthsHS = 0;
+
+                for (let r = 3; r <= 100; r++) {
+                    const cellA = wsH['A' + r];
+                    if (cellA && cellA.v) {
+                        const areaName = cellA.v.toString().trim().toUpperCase();
+                        const cleanA = superClean(areaName);
+                        if (!cleanA.includes("AREA") && !cleanA.includes("TOTAL")) {
+                            globalRawData.setoresList.add(areaName);
+                            if (!globalRawData.hslider.sectorsData[areaName]) {
+                                globalRawData.hslider.sectorsData[areaName] = {
+                                    realizadoTotal: 0,
+                                    porMes: {}
+                                };
+                            }
+
+                            monthHeadersHS.forEach((m, idx) => {
+                                const valCell = wsH[m.col + r];
+                                const val = parseFloat(valCell ? valCell.v : 0) || 0;
+                                globalRawData.hslider.sectorsData[areaName].porMes[m.label] = val;
+                                if (val > 0) {
+                                    globalRawData.hslider.sectorsData[areaName].realizadoTotal += val;
+                                    globalRawData.hslider.totalHS += val;
+                                    if (idx + 1 > activeMonthsHS) activeMonthsHS = idx + 1;
+                                }
+                            });
+                        }
+                    }
+                }
+
+                globalRawData.hslider.activeMonthsCount = Math.max(activeMonthsHS, 6);
+            }
+
+            // 6. TABELA OBRA (TABELA OBRASOFT)
+            const wsO = findSheet(wb, "TABELA OBRASOFT") || findSheet(wb, "OBRA");
+            if (wsO) {
+                const dataO = XLSX.utils.sheet_to_json(wsO, { header: "A", defval: "" });
+                
+                dataO.forEach((r, i) => {
+                    if (i >= 1 && r.A) {
+                        globalRawData.obra.kpis.t++;
+                        const idVal = r.A;
+                        const desc = r.H ? r.H.toString().trim() : "SIN DESCRIPCIÓN";
+                        const plano = r.I ? r.I.toString().trim() : "SIN PLAN DE ACCIÓN";
+                        const resp = r.J ? r.J.toString().trim().toUpperCase() : "SIN RESPONSABLE";
+                        const etRaw = r.R ? r.R.toString().trim() : "";
+                        const etLimpo = superClean(etRaw);
+                        const stRaw = r.T ? r.T.toString().trim() : "";
+                        const stLimpo = superClean(stRaw);
+
+                        globalRawData.obra.mJ[resp] = (globalRawData.obra.mJ[resp] || 0) + 1;
+
+                        if (etLimpo.includes("EXEC") || etLimpo.includes("EJEC")) {
+                            globalRawData.obra.kpis.e++;
+                            globalRawData.obra.mJExec[resp] = (globalRawData.obra.mJExec[resp] || 0) + 1;
+                        }
+                        if (etLimpo.includes("VERIF")) globalRawData.obra.kpis.v++;
+                        if (etLimpo.includes("FIN")) globalRawData.obra.kpis.f++;
+
+                        let dataObj = null;
+                        let dataFormatada = "S/F";
+
+                        if (r.S instanceof Date) {
+                            dataObj = r.S;
+                            dataFormatada = r.S.toLocaleDateString('es-CL');
+                        } else if (r.S) {
+                            dataFormatada = r.S.toString().trim();
+                            const parsed = Date.parse(dataFormatada);
+                            if (!isNaN(parsed)) dataObj = new Date(parsed);
+                        }
+
+                        let isAtrasado = stLimpo.includes("ATRA") || stLimpo.includes("ATRAS");
+                        if (!isAtrasado && dataObj) {
+                            const agoraCheck = new Date();
+                            agoraCheck.setHours(0,0,0,0);
+                            const pZero = new Date(dataObj);
+                            pZero.setHours(0,0,0,0);
+                            if (pZero < agoraCheck) isAtrasado = true;
+                        }
+
+                        if ((etLimpo.includes("EXEC") || etLimpo.includes("EJEC")) && isAtrasado) {
+                            globalRawData.obra.kpis.a++;
+                            globalRawData.obra.mA[resp] = (globalRawData.obra.mA[resp] || 0) + 1;
+                        }
+
+                        const setorResponsavel = obterSetorDaPessoa(resp);
+
+                        if (etLimpo.includes("EXEC") || etLimpo.includes("EJEC")) {
+                            globalRawData.obra.rowsExecucao.push({
+                                id: idVal,
+                                desc: desc,
+                                plano: plano,
+                                resp: resp,
+                                setor: setorResponsavel,
+                                etapa: etRaw || "EXECUÇÃO",
+                                prazoDate: dataObj,
+                                prazoStr: dataFormatada,
+                                status: stRaw || "No prazo",
+                                isAtrasado: isAtrasado
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 7. PENDIENTES
+            const wsP = findSheet(wb, "SEGURT-PENDIENTE-CR") || findSheet(wb, "PENDIENTE");
+            if (wsP) {
+                const dataP = XLSX.utils.sheet_to_json(wsP, { header: "A", defval: "" });
+                dataP.forEach((r, i) => {
+                    if (i >= 1 && superClean(r.AJ).includes("PENDIENTE")) {
+                        const resp = r.K ? r.K.toString().trim().toUpperCase() : "SIN RESPONSABLE";
+                        globalRawData.pendientes[resp] = (globalRawData.pendientes[resp] || 0) + 1;
+                    }
+                });
+            }
+
+            atualizarSelects();
+        }
+
+        function atualizarSelects() {
+            const selSector = document.getElementById("filterSector");
+            const currentSec = selSector.value;
+            selSector.innerHTML = '<option value="ALL">TODOS LOS SECTORES</option>';
+            Array.from(globalRawData.setoresList).sort((a,b) => a.localeCompare(b)).forEach(s => {
+                selSector.innerHTML += `<option value="${s}" ${s === currentSec ? 'selected' : ''}>${s}</option>`;
+            });
+
+            const selSectorTabelaObra = document.getElementById("filterSectorTabelaObra");
+            if (selSectorTabelaObra) {
+                const currentSecTabela = selSectorTabelaObra.value;
+                selSectorTabelaObra.innerHTML = '<option value="ALL">TODOS LOS SECTORES</option>';
+                Array.from(globalRawData.setoresList).sort((a,b) => a.localeCompare(b)).forEach(s => {
+                    selSectorTabelaObra.innerHTML += `<option value="${s}" ${s === currentSecTabela ? 'selected' : ''}>${s}</option>`;
+                });
+            }
+
+            const selSectorAtrasados = document.getElementById("filterSectorAtrasados");
+            if (selSectorAtrasados) {
+                const currentSecAtr = selSectorAtrasados.value;
+                selSectorAtrasados.innerHTML = '<option value="ALL">TODOS LOS SECTORES</option>';
+                Array.from(globalRawData.setoresList).sort((a,b) => a.localeCompare(b)).forEach(s => {
+                    selSectorAtrasados.innerHTML += `<option value="${s}" ${s === currentSecAtr ? 'selected' : ''}>${s}</option>`;
+                });
+                selSectorAtrasados.innerHTML += `<option value="OTROS" ${currentSecAtr === 'OTROS' ? 'selected' : ''}>OTROS / SIN ÁREA</option>`;
+            }
+
+            const selPerson = document.getElementById("filterPerson");
+            const currentPer = selPerson.value;
+            let optionsPerson = '<option value="ALL">TODAS LAS PERSONAS</option>';
+            Array.from(globalRawData.pessoasList).sort((a,b) => a.localeCompare(b)).forEach(p => {
+                optionsPerson += `<option value="${p}" ${p === currentPer ? 'selected' : ''}>${p}</option>`;
+            });
+            selPerson.innerHTML = optionsPerson;
+
+            const selMonthNM = document.getElementById("filterMonthNM");
+            const currentMonthNM = selMonthNM.value;
+            selMonthNM.innerHTML = '<option value="ALL">TODOS LOS MESES (ACUMULADO)</option>';
+            globalRawData.nearmiss.mesesHeaders.forEach(m => {
+                selMonthNM.innerHTML += `<option value="${m.label}" ${m.label === currentMonthNM ? 'selected' : ''}>${m.label}</option>`;
+            });
+
+            const selMonthHS = document.getElementById("filterMonthHS");
+            const currentMonthHS = selMonthHS.value;
+            selMonthHS.innerHTML = '<option value="ALL">TODOS LOS MESES (ACUMULADO)</option>';
+            globalRawData.hslider.mesesHeaders.forEach(m => {
+                selMonthHS.innerHTML += `<option value="${m.label}" ${m.label === currentMonthHS ? 'selected' : ''}>${m.label}</option>`;
+            });
+
+            const selPersonTabelaObra = document.getElementById("filterPersonTabelaObra");
+            const currentPerObra = selPersonTabelaObra.value;
+            const pessoasExecucao = new Set();
+            globalRawData.obra.rowsExecucao.forEach(r => {
+                if (r.resp) pessoasExecucao.add(r.resp);
+            });
+            let optionsObra = '<option value="ALL">TODAS LAS PERSONAS</option>';
+            Array.from(pessoasExecucao).sort((a,b) => a.localeCompare(b)).forEach(p => {
+                optionsObra += `<option value="${p}" ${p === currentPerObra ? 'selected' : ''}>${p}</option>`;
+            });
+            selPersonTabelaObra.innerHTML = optionsObra;
+        }
+
+        function renderizarTabelaExecucao() {
+            const tb = document.getElementById("tableBody");
+            tb.innerHTML = "";
+
+            const filtroSetor = document.getElementById("filterSectorTabelaObra") ? document.getElementById("filterSectorTabelaObra").value : "ALL";
+            const filtroStatus = document.getElementById("filterStatusTabelaObra").value;
+            const filtroPessoa = document.getElementById("filterPersonTabelaObra").value;
+
+            let rows = globalRawData.obra.rowsExecucao;
+
+            if (filtroPessoa !== "ALL") {
+                rows = rows.filter(r => r.resp === filtroPessoa);
+            }
+
+            if (filtroSetor !== "ALL") {
+                rows = rows.filter(r => r.setor === filtroSetor);
+            }
+
+            const agora = new Date();
+            agora.setHours(0,0,0,0);
+
+            let rowsFiltradas = [];
+
+            rows.forEach(r => {
+                let badgeClass = "status-prazo";
+                let statusLabel = r.status;
+                const statusLimpo = superClean(r.status);
+
+                let diasRestantes = null;
+                if (r.prazoDate instanceof Date && !isNaN(r.prazoDate)) {
+                    const prazoZero = new Date(r.prazoDate);
+                    prazoZero.setHours(0,0,0,0);
+                    const diffTime = prazoZero.getTime() - agora.getTime();
+                    diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
+
+                let tipoCategoria = "NOPRAZO";
+
+                if (statusLimpo.includes("ATRA") || (diasRestantes !== null && diasRestantes < 0)) {
+                    badgeClass = "status-atrasado";
+                    statusLabel = "Atrasado";
+                    tipoCategoria = "ATRASADO";
+                } else if (diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3) {
+                    badgeClass = "status-alerta";
+                    statusLabel = `Atención (${diasRestantes}d)`;
+                    tipoCategoria = "ALERTA";
+                } else {
+                    badgeClass = "status-prazo";
+                    statusLabel = "No prazo";
+                    tipoCategoria = "NOPRAZO";
+                }
+
+                if (filtroStatus === "ALL" || filtroStatus === tipoCategoria) {
+                    rowsFiltradas.push({
+                        ...r,
+                        badgeClass: badgeClass,
+                        statusLabel: statusLabel
+                    });
+                }
+            });
+
+            document.getElementById("badgeContadorExec").innerText = `${rowsFiltradas.length} REGISTROS`;
+
+            if (rowsFiltradas.length === 0) {
+                tb.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron desvíos en etapa de ejecución para el filtro seleccionado.</td></tr>`;
+                return;
+            }
+
+            rowsFiltradas.forEach(r => {
+                const badgeSetor = r.setor && r.setor !== 'SIN ÁREA' ? `<span class="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">${r.setor}</span>` : '';
+                tb.innerHTML += `
+                    <tr>
+                        <td class="font-bold text-gray-900">${r.id}</td>
+                        <td class="text-xs text-gray-800 font-normal leading-snug">${r.desc}</td>
+                        <td class="text-xs text-gray-800 font-normal leading-snug">${r.plano}</td>
+                        <td class="font-bold text-gray-900 text-xs">${r.resp} ${badgeSetor}</td>
+                        <td><span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-bold">${r.etapa}</span></td>
+                        <td class="font-bold text-xs whitespace-nowrap">${r.prazoStr}</td>
+                        <td class="whitespace-nowrap"><span class="status-badge ${r.badgeClass}">${r.statusLabel}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderizarDashboard() {
+            Object.values(charts).forEach(c => c.destroy());
+
+            const fSector = document.getElementById("filterSector").value;
+            const fPerson = document.getElementById("filterPerson").value;
+            const fSectorAtrasados = document.getElementById("filterSectorAtrasados").value;
+            const fMonthNM = document.getElementById("filterMonthNM").value;
+            const fMonthHS = document.getElementById("filterMonthHS").value;
+
+            // 1. CRUCES DE PESSOAS: INCLUI PLANIFICADAS + INSPEÇÕES MANUAIS
+            let mapPessoasConsolidadas = new Map();
+
+            globalRawData.planificadas.forEach(p => {
+                mapPessoasConsolidadas.set(p.nome, {
+                    nome: p.nome,
+                    setor: p.setor,
+                    previsto: p.previsto,
+                    keys: p.keys
+                });
+            });
+
+            globalRawData.manual.forEach(m => {
+                const fKeysM = m.keys || getNameKeys(m.nome);
+                let achou = false;
+                for (let [nomeP, dadosP] of mapPessoasConsolidadas.entries()) {
+                    if (dadosP.keys.some(pk => fKeysM.includes(pk))) {
+                        achou = true;
+                        break;
+                    }
+                }
+                if (!achou) {
+                    mapPessoasConsolidadas.set(m.nome, {
+                        nome: m.nome,
+                        setor: "SIN ÁREA",
+                        previsto: m.previsto || 4,
+                        keys: fKeysM
+                    });
+                }
+            });
+
+            let listaPessoasFiltradas = Array.from(mapPessoasConsolidadas.values()).filter(item => {
+                if (fSector !== "ALL" && item.setor !== fSector) return false;
+                if (fPerson !== "ALL" && item.nome !== fPerson) return false;
+                return true;
+            });
+
+            let cruzamentoPessoas = [];
+            let setoresMap = {};
+
+            listaPessoasFiltradas.forEach(p => {
+                let realizadoSegurt = 0;
+                let realizadoManual = 0;
+
+                for (let segNome in globalRawData.segurtPorNome) {
+                    const segKeys = getNameKeys(segNome);
+                    if (p.keys.some(pk => segKeys.includes(pk))) {
+                        realizadoSegurt += globalRawData.segurtPorNome[segNome];
+                    }
+                }
+
+                globalRawData.manual.forEach(m => {
+                    const mKeys = m.keys || getNameKeys(m.nome);
+                    if (p.keys.some(pk => mKeys.includes(pk))) {
+                        realizadoManual += (m.realizado || 0);
+                    }
+                });
+
+                const realizadoTotal = realizadoSegurt + realizadoManual;
+                const previstoTotal = p.previsto > 0 ? p.previsto : 4;
+                const pct = Math.round((realizadoTotal / previstoTotal) * 100);
+
+                cruzamentoPessoas.push({
+                    nome: p.nome,
+                    realizado: realizadoTotal,
+                    previsto: previstoTotal,
+                    porcentagem: pct,
+                    setor: p.setor
+                });
+
+                if (!setoresMap[p.setor]) setoresMap[p.setor] = { previsto: 0, realizado: 0 };
+                setoresMap[p.setor].previsto += previstoTotal;
+                setoresMap[p.setor].realizado += realizadoTotal;
+            });
+
+            cruzamentoPessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            const labelsPlan = cruzamentoPessoas.map(x => x.nome);
+            const valuesPlan = cruzamentoPessoas.map(x => x.porcentagem);
+
+            document.getElementById('cont-plan').style.height = Math.max(300, labelsPlan.length * 25 + 40) + "px";
+            charts.chartPlanificadasRealizadas = new Chart(document.getElementById('chartPlanificadasRealizadas'), {
+                type: 'bar',
+                data: { labels: labelsPlan, datasets: [{ backgroundColor: '#0284c7', data: valuesPlan }] },
+                options: {
+                    ...getOptions(true, '#000000', false, 'pessoas', cruzamentoPessoas, 'person'),
+                    plugins: {
+                        ...getOptions(true, '#000000', false, 'pessoas', cruzamentoPessoas, 'person').plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const it = cruzamentoPessoas[ctx.dataIndex];
+                                    return `Cumplimiento: ${it.realizado}/${it.previsto} (${it.porcentagem}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            charts.chartPlanificadasRealizadas._metaArray = cruzamentoPessoas;
+
+            // 2. CUMPLIMIENTO POR SECTOR
+            let resultadoSetores = [];
+            for (let s in setoresMap) {
+                const item = setoresMap[s];
+                const pct = item.previsto > 0 ? Math.round((item.realizado / item.previsto) * 100) : 0;
+                resultadoSetores.push({ setor: s, previsto: item.previsto, realizado: item.realizado, porcentagem: pct });
+            }
+            resultadoSetores.sort((a, b) => a.setor.localeCompare(b.setor));
+
+            document.getElementById('cont-sector').style.height = Math.max(300, resultadoSetores.length * 25 + 40) + "px";
+            charts.chartCumplimientoSector = new Chart(document.getElementById('chartCumplimientoSector'), {
+                type: 'bar',
+                data: { labels: resultadoSetores.map(x => x.setor), datasets: [{ backgroundColor: '#10b981', data: resultadoSetores.map(x => x.porcentagem) }] },
+                options: {
+                    ...getOptions(true, '#000000', false, 'pct', [], 'sector'),
+                    plugins: {
+                        ...getOptions(true, '#000000', false, 'pct', [], 'sector').plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const it = resultadoSetores[ctx.dataIndex];
+                                    return `Sector: ${it.porcentagem}% (${it.realizado}/${it.previsto} programadas)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 3. SEGURT POR PERSONA
+            let mapSegurtFiltrado = {};
+            let totalSegurt = 0;
+            for (let nome in globalRawData.segurtPorNome) {
+                if (fPerson !== "ALL" && nome !== fPerson) continue;
+                mapSegurtFiltrado[nome] = globalRawData.segurtPorNome[nome];
+                totalSegurt += globalRawData.segurtPorNome[nome];
+            }
+            const lSegurt = Object.keys(mapSegurtFiltrado).sort((a,b) => a.localeCompare(b));
+            document.getElementById('cont-segurt').style.height = Math.max(300, lSegurt.length * 25 + 40) + "px";
+            charts.chartSegurt = new Chart(document.getElementById('chartSegurt'), {
+                type: 'bar', data: { labels: lSegurt, datasets: [{ backgroundColor: '#004a99', data: lSegurt.map(l => mapSegurtFiltrado[l]) }] },
+                options: getOptions(true, '#000000', false, null, [], 'person')
+            });
+            document.getElementById('kpi-insp').innerText = totalSegurt;
+
+            // 4. INSPECCIONES MANUALES
+            let manualFiltrado = [];
+            let totalManualRealizado = 0;
+
+            if (fPerson === "ALL") {
+                manualFiltrado = [...globalRawData.manual];
+            } else {
+                const fKeys = getNameKeys(fPerson);
+                manualFiltrado = globalRawData.manual.filter(m => {
+                    if (m.nome === fPerson) return true;
+                    if (m.keys && m.keys.some(k => fKeys.includes(k))) return true;
+                    return false;
+                });
+            }
+
+            manualFiltrado.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            if (fPerson === "ALL") {
+                globalRawData.manual.forEach(m => totalManualRealizado += m.realizado);
+            } else {
+                if (manualFiltrado.length > 0) {
+                    manualFiltrado.forEach(m => totalManualRealizado += m.realizado);
+                } else {
+                    globalRawData.manual.forEach(m => totalManualRealizado += m.realizado);
+                }
+            }
+
+            const msgVazio = document.getElementById("msgManualVazio");
+            const contManual = document.getElementById("cont-manual");
+
+            if (manualFiltrado.length === 0 && fPerson !== "ALL") {
+                if (msgVazio) msgVazio.classList.remove("hidden");
+                document.getElementById('chartManual').style.display = 'none';
+            } else {
+                if (msgVazio) msgVazio.classList.add("hidden");
+                document.getElementById('chartManual').style.display = 'block';
+
+                const labelsManual = manualFiltrado.map(m => m.nome);
+                const valuesManual = manualFiltrado.map(m => m.porcentagem);
+
+                contManual.style.height = Math.max(300, labelsManual.length * 25 + 40) + "px";
+                charts.chartManual = new Chart(document.getElementById('chartManual'), {
+                    type: 'bar',
+                    data: { labels: labelsManual, datasets: [{ backgroundColor: '#db2777', data: valuesManual }] },
+                    options: {
+                        ...getOptions(true, '#000000', false, 'manual', manualFiltrado, 'person'),
+                        plugins: {
+                            ...getOptions(true, '#000000', false, 'manual', manualFiltrado, 'person').plugins,
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const it = manualFiltrado[ctx.dataIndex];
+                                        return `Manual: ${it.realizado}/${it.previsto} (${it.porcentagem}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                charts.chartManual._metaArray = manualFiltrado;
+            }
+            document.getElementById('kpi-manual-total').innerText = totalManualRealizado;
+
+            // 5. PENDIENTES CR
+            let pendFiltrado = {};
+            let totalPend = 0;
+            for (let p in globalRawData.pendientes) {
+                if (fPerson !== "ALL" && p !== fPerson) continue;
+                pendFiltrado[p] = globalRawData.pendientes[p];
+                totalPend += globalRawData.pendientes[p];
+            }
+            const lPend = Object.keys(pendFiltrado).sort((a,b) => a.localeCompare(b));
+            document.getElementById('cont-pend').style.height = Math.max(300, lPend.length * 25 + 40) + "px";
+            charts.chartPendentes = new Chart(document.getElementById('chartPendentes'), {
+                type: 'bar', data: { labels: lPend, datasets: [{ backgroundColor: '#ffb900', data: lPend.map(l => pendFiltrado[l]) }] },
+                options: getOptions(true, '#000000', false, null, [], 'person')
+            });
+            document.getElementById('kpi-pend').innerText = totalPend;
+
+            // 6. NEARMISS MENSUAL VS DESVIACIONES
+            let labelsNM = globalRawData.nearmiss.mesesHeaders.map(m => m.label);
+            let dataNM = globalRawData.nearmiss.mesesNM;
+            let dataDesv = globalRawData.nearmiss.mesesDesv;
+
+            if (fMonthNM !== "ALL") {
+                const idxM = labelsNM.indexOf(fMonthNM);
+                if (idxM !== -1) {
+                    labelsNM = [fMonthNM];
+                    dataNM = [globalRawData.nearmiss.mesesNM[idxM]];
+                    dataDesv = [globalRawData.nearmiss.mesesDesv[idxM]];
+                }
+            }
+
+            charts.chartNmAreas = new Chart(document.getElementById('chartNmAreas'), {
+                type: 'bar',
+                data: {
+                    labels: labelsNM.length > 0 ? labelsNM : mesesLabelsChile,
+                    datasets: [
+                        { label: 'NEARMISS (NR)', backgroundColor: '#000', data: dataNM },
+                        { label: 'DESVIACIONES', backgroundColor: '#94a3b8', data: dataDesv }
+                    ]
+                },
+                options: getOptions(false, '#000000', true)
+            });
+
+            // 7. CUMPLIMIENTO NEARMISS POR SECTOR (%)
+            let resultadoSectoresNR = [];
+            let totalNMFiltrado = 0;
+
+            for (let s in globalRawData.nearmiss.sectorsNR) {
+                if (fSector !== "ALL" && s !== fSector) continue;
+                const d = globalRawData.nearmiss.sectorsNR[s];
+
+                let realizado = 0;
+                let previsto = 0;
+
+                if (fMonthNM === "ALL") {
+                    realizado = d.realizadoTotal;
+                    previsto = (globalRawData.nearmiss.activeMonthsCount || 13) * 8;
+                } else {
+                    realizado = d.porMes[fMonthNM] || 0;
+                    previsto = 8;
+                }
+
+                totalNMFiltrado += realizado;
+
+                const pct = previsto > 0 ? Math.round((realizado / previsto) * 100) : 0;
+                resultadoSectoresNR.push({ setor: s, realizado: realizado, previsto: previsto, porcentagem: pct });
+            }
+
+            document.getElementById('kpi-near').innerText = (fMonthNM === "ALL" && fSector === "ALL") ? globalRawData.nearmiss.totalNM : totalNMFiltrado;
+            resultadoSectoresNR.sort((a, b) => a.setor.localeCompare(b.setor));
+
+            document.getElementById('cont-nmarea').style.height = Math.max(300, resultadoSectoresNR.length * 25 + 40) + "px";
+            charts.chartNmPorArea = new Chart(document.getElementById('chartNmPorArea'), {
+                type: 'bar',
+                data: {
+                    labels: resultadoSectoresNR.map(x => x.setor),
+                    datasets: [{ backgroundColor: '#8b5cf6', data: resultadoSectoresNR.map(x => x.porcentagem) }]
+                },
+                options: {
+                    ...getOptions(true, '#000000', false, 'nearmiss', resultadoSectoresNR, 'sector'),
+                    plugins: {
+                        ...getOptions(true, '#000000', false, 'nearmiss', resultadoSectoresNR, 'sector').plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const it = resultadoSectoresNR[ctx.dataIndex];
+                                    return `Nearmiss: ${it.realizado}/${it.previsto} previstos (${it.porcentagem}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            charts.chartNmPorArea._metaArray = resultadoSectoresNR;
+
+            // 8. CUMPLIMIENTO HSLIDER POR SECTOR (%)
+            let resultadoSectoresHS = [];
+            let totalHSFiltrado = 0;
+
+            for (let s in globalRawData.hslider.sectorsData) {
+                if (fSector !== "ALL" && s !== fSector) continue;
+                const d = globalRawData.hslider.sectorsData[s];
+
+                let realizado = 0;
+                let previsto = 0;
+
+                if (fMonthHS === "ALL") {
+                    realizado = d.realizadoTotal;
+                    previsto = (globalRawData.hslider.activeMonthsCount || 6) * 16;
+                } else {
+                    realizado = d.porMes[fMonthHS] || 0;
+                    previsto = 16;
+                }
+
+                totalHSFiltrado += realizado;
+
+                const pct = previsto > 0 ? Math.round((realizado / previsto) * 100) : 0;
+                resultadoSectoresHS.push({ setor: s, realizado: realizado, previsto: previsto, porcentagem: pct });
+            }
+
+            document.getElementById('kpi-hslider').innerText = (fMonthHS === "ALL" && fSector === "ALL") ? globalRawData.hslider.totalHS : totalHSFiltrado;
+            resultadoSectoresHS.sort((a, b) => a.setor.localeCompare(b.setor));
+
+            document.getElementById('cont-hslider').style.height = Math.max(300, resultadoSectoresHS.length * 25 + 40) + "px";
+            charts.chartHsliderPorArea = new Chart(document.getElementById('chartHsliderPorArea'), {
+                type: 'bar',
+                data: {
+                    labels: resultadoSectoresHS.map(x => x.setor),
+                    datasets: [{ backgroundColor: '#f97316', data: resultadoSectoresHS.map(x => x.porcentagem) }]
+                },
+                options: {
+                    ...getOptions(true, '#000000', false, 'hslider', resultadoSectoresHS, 'sector'),
+                    plugins: {
+                        ...getOptions(true, '#000000', false, 'hslider', resultadoSectoresHS, 'sector').plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const it = resultadoSectoresHS[ctx.dataIndex];
+                                    return `Horas Líder: ${it.realizado}/${it.previsto} previstos (${it.porcentagem}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            charts.chartHsliderPorArea._metaArray = resultadoSectoresHS;
+
+            // 9. ATRASADOS POR PERSONA (EN EJEC.)
+            let contagemAtrasadosPorPessoa = {};
+
+            globalRawData.obra.rowsExecucao.forEach(row => {
+                if (row.isAtrasado && row.resp) {
+                    const pessoaNome = row.resp;
+
+                    if (fPerson !== "ALL" && pessoaNome !== fPerson) return;
+
+                    const setorPessoa = obterSetorDaPessoa(pessoaNome);
+
+                    if (fSector !== "ALL" && setorPessoa !== fSector) return;
+
+                    if (fSectorAtrasados !== "ALL") {
+                        if (fSectorAtrasados === "OTROS") {
+                            if (Array.from(globalRawData.setoresList).includes(setorPessoa) && setorPessoa !== "SIN ÁREA") {
+                                return;
+                            }
+                        } else if (setorPessoa !== fSectorAtrasados) {
+                            return;
+                        }
+                    }
+
+                    const labelComSetor = `${pessoaNome} [${setorPessoa}]`;
+                    contagemAtrasadosPorPessoa[labelComSetor] = (contagemAtrasadosPorPessoa[labelComSetor] || 0) + 1;
+                }
+            });
+
+            const lA = Object.keys(contagemAtrasadosPorPessoa).sort((a,b) => a.localeCompare(b));
+            document.getElementById('cont-atrasados').style.height = Math.max(300, lA.length * 25 + 40) + "px";
+            charts.chartAtrasadosP = new Chart(document.getElementById('chartAtrasadosP'), {
+                type: 'bar', 
+                data: { 
+                    labels: lA, 
+                    datasets: [{ 
+                        label: 'Desvios Atrasados',
+                        backgroundColor: '#ef4444', 
+                        data: lA.map(l => contagemAtrasadosPorPessoa[l]) 
+                    }] 
+                },
+                options: {
+                    ...getOptions(true, '#000000', false, null, []),
+                    plugins: {
+                        ...getOptions(true, '#000000', false, null, []).plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `Atrasados: ${ctx.parsed.x} desvios`
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('kpi-total-obrasoft').innerText = globalRawData.obra.kpis.t;
+            document.getElementById('kpi-execucao').innerText = globalRawData.obra.kpis.e;
+            document.getElementById('kpi-verificacao').innerText = globalRawData.obra.kpis.v;
+            document.getElementById('kpi-atrasados').innerText = globalRawData.obra.kpis.a;
+            document.getElementById('kpi-finalizados').innerText = globalRawData.obra.kpis.f;
+
+            renderizarTabelaExecucao();
+        }
+
+        function aplicarFiltros() {
+            renderizarDashboard();
+        }
+
+        function limparFiltros() {
+            document.getElementById("filterSector").value = "ALL";
+            document.getElementById("filterPerson").value = "ALL";
+            if (document.getElementById("filterSectorAtrasados")) document.getElementById("filterSectorAtrasados").value = "ALL";
+            if (document.getElementById("filterSectorTabelaObra")) document.getElementById("filterSectorTabelaObra").value = "ALL";
+            document.getElementById("filterMonthNM").value = "ALL";
+            document.getElementById("filterMonthHS").value = "ALL";
+            document.getElementById("filterStatusTabelaObra").value = "ALL";
+            document.getElementById("filterPersonTabelaObra").value = "ALL";
+            renderizarDashboard();
+            const menu = document.getElementById("filterMenu");
+            if (menu && !menu.classList.contains("hidden")) {
+                menu.classList.add("hidden");
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            carregarDadosOnline();
+        });
+    </script>
+</body>
+</html>
