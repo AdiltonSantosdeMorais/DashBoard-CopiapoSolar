@@ -512,28 +512,29 @@
             return false;
         }
 
-        // Divide nomes longos em 2 linhas equilibradas para caber dentro da margem
-        function quebrarNomeEmLinhas(nome, maxChars = 14) {
+        // Divide o nome de forma equilibrada em duas metades com palavras completas
+        function quebrarNomeEquilibrado(nome, maxChars = 16) {
             if (!nome) return "";
             if (nome.length <= maxChars) return nome;
             const palavras = nome.split(" ");
-            if (palavras.length === 1) return nome;
+            if (palavras.length <= 1) return nome;
 
-            let linha1 = [];
-            let linha2 = [];
-            let lenAtual = 0;
+            let melhorDiff = 999;
+            let melhorPonto = Math.floor(palavras.length / 2);
 
-            for (let i = 0; i < palavras.length; i++) {
-                if (lenAtual + palavras[i].length <= maxChars || linha1.length === 0) {
-                    linha1.push(palavras[i]);
-                    lenAtual += palavras[i].length + 1;
-                } else {
-                    linha2.push(palavras[i]);
+            for (let i = 1; i < palavras.length; i++) {
+                const p1 = palavras.slice(0, i).join(" ").length;
+                const p2 = palavras.slice(i).join(" ").length;
+                const diff = Math.abs(p1 - p2);
+                if (diff < melhorDiff) {
+                    melhorDiff = diff;
+                    melhorPonto = i;
                 }
             }
 
-            if (linha2.length === 0) return linha1.join(" ");
-            return [linha1.join(" "), linha2.join(" ")];
+            const linha1 = palavras.slice(0, melhorPonto).join(" ");
+            const linha2 = palavras.slice(melhorPonto).join(" ");
+            return [linha1, linha2];
         }
 
         function parseDataRobusta(val) {
@@ -817,8 +818,8 @@
             return stClean.includes(superClean(filterValue));
         };
 
-        // Opções ajustadas com nomes alinhados na margem esquerda e folga à direita contra cortes
-        const getOptions = (horiz, color = '#000000', stack = false, customMode = null, metaArray = [], clickType = null, isExpanded = false) => ({
+        // Opções calculadas com nomes alinhados na margem esquerda e folga proporcional
+        const getOptions = (horiz, color = '#000000', stack = false, customMode = null, metaArray = [], clickType = null, isExpanded = false, isWideCard = false) => ({
             indexAxis: horiz ? 'y' : 'x',
             responsive: true,
             maintainAspectRatio: false,
@@ -871,7 +872,7 @@
                 x: { 
                     stacked: stack, 
                     grid: { display: false }, 
-                    // Garante 35% de espaço extra na direita para que nenhuma porcentagem ou número estoure o card
+                    // Margem automática na direita da escala para que nenhuma porcentagem estoure a borda
                     grace: horiz ? (customMode ? '35%' : '20%') : 0,
                     ticks: { color: '#000000', font: { family: 'Verdana', weight: 'bold', size: 9 } } 
                 }, 
@@ -880,15 +881,20 @@
                     grid: { display: false }, 
                     afterFit: function(axis) {
                         if (horiz) {
-                            // Espaço proporcional reservado para os nomes começarem colados na esquerda
-                            axis.width = isExpanded ? 240 : 120;
+                            if (isExpanded) {
+                                axis.width = 260;
+                            } else if (isWideCard) {
+                                axis.width = 185; // Espaço confortável para os cartões de 2 colunas
+                            } else {
+                                axis.width = 125; // Espaço otimizado para cartões de 1 coluna
+                            }
                         }
                     },
                     ticks: { 
                         color: '#000000', 
                         mirror: false,
                         autoSkip: false,
-                        crossAlign: 'near', // Começa diretamente na margem esquerda (Left-to-Right)
+                        crossAlign: 'near', // Alinha diretamente na margem esquerda (Left-to-Right)
                         textAlign: 'left',
                         padding: 4,
                         font: { family: 'Verdana', weight: 'bold', size: isExpanded ? 9 : 7.5 }
@@ -897,6 +903,7 @@
             }
         });
 
+        // Expansão de tela cheia sem cortes ao clicar
         function expand(id, title) {
             const src = charts[id]; if (!src) return;
             document.getElementById('modalOverlay').style.display = 'block';
@@ -928,9 +935,9 @@
                 type: 'bar', 
                 data: modalData,
                 options: {
-                    ...getOptions(src.options.indexAxis === 'y', '#000000', !!src.data.datasets[1], mode, src._metaArray || [], null, true),
+                    ...getOptions(src.options.indexAxis === 'y', '#000000', !!src.data.datasets[1], mode, src._metaArray || [], null, true, true),
                     plugins: {
-                        ...getOptions(src.options.indexAxis === 'y', '#000000', !!src.data.datasets[1], mode, src._metaArray || [], null, true).plugins,
+                        ...getOptions(src.options.indexAxis === 'y', '#000000', !!src.data.datasets[1], mode, src._metaArray || [], null, true, true).plugins,
                         tooltip: src.options.plugins && src.options.plugins.tooltip ? src.options.plugins.tooltip : {}
                     }
                 }
@@ -1107,7 +1114,7 @@
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.emision}</td>
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.cierrePrev}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.disciplina}</td>
-                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.accionElecnor}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
                             <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.fechaCierre}</td>
@@ -1138,7 +1145,7 @@
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.emision}</td>
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.cierrePrev}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.disciplina}</td>
-                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.accionElecnor}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
                             <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.fechaCierre}</td>
@@ -1429,7 +1436,7 @@
                 globalRawData.hslider.activeMonthsCount = Math.max(activeMonthsHS, 6);
             }
 
-            // 6. TABELA OBRA (TABELA OBRASOFT)
+            // 6. TABELA OBRA (TABELA OBRASOFT) - DESIGNAR RESPONSÁVEIS CONFORME COLUNA AY E DIAS DE ATRASO CONFORME AK
             const wsO = findSheet(wb, "TABELA OBRASOFT") || findSheet(wb, "OBRA");
             if (wsO) {
                 const maxRObra = wsO['!maxRow'] || 1500;
@@ -1451,7 +1458,6 @@
                         const desc = cellH && cellH.v ? cellH.v.toString().trim() : "SIN DESCRIPCIÓN";
                         const plano = cellI && cellI.v ? cellI.v.toString().trim() : "SIN PLAN DE ACCIÓN";
 
-                        // Responsável designado pela COLUNA AY (com fallback para Coluna J)
                         let respRaw = "";
                         if (cellAY && cellAY.v && String(cellAY.v).trim() !== "") {
                             respRaw = cellAY.v.toString().trim();
@@ -1467,7 +1473,6 @@
                         const stRaw = cellT && cellT.v ? cellT.v.toString().trim() : "";
                         const stLimpo = superClean(stRaw);
 
-                        // Dias de atraso conforme a COLUNA AK
                         let diasAtrasoNum = null;
                         let diasAtrasoStr = "0";
 
@@ -1774,9 +1779,9 @@
 
             cruzamentoPessoas.sort((a, b) => a.nome.localeCompare(b.nome));
 
-            // 1. GRÁFICO: PLANIFICADAS VS REALIZADAS
+            // 1. GRÁFICO: PLANIFICADAS VS REALIZADAS (CARTÃO DUPLO: isWideCard = true)
             const labelsPlanOriginal = cruzamentoPessoas.map(x => x.nome);
-            const labelsPlanCard = cruzamentoPessoas.map(x => quebrarNomeEmLinhas(x.nome, 14));
+            const labelsPlanCard = cruzamentoPessoas.map(x => quebrarNomeEquilibrado(x.nome, 18));
             const valuesPlan = cruzamentoPessoas.map(x => x.porcentagem);
 
             document.getElementById('cont-plan').style.height = Math.max(300, labelsPlanOriginal.length * 28 + 40) + "px";
@@ -1784,9 +1789,9 @@
                 type: 'bar',
                 data: { labels: labelsPlanCard, datasets: [{ backgroundColor: '#0284c7', data: valuesPlan }] },
                 options: {
-                    ...getOptions(true, '#000000', false, 'pessoas', cruzamentoPessoas, 'person'),
+                    ...getOptions(true, '#000000', false, 'pessoas', cruzamentoPessoas, 'person', false, true),
                     plugins: {
-                        ...getOptions(true, '#000000', false, 'pessoas', cruzamentoPessoas, 'person').plugins,
+                        ...getOptions(true, '#000000', false, 'pessoas', cruzamentoPessoas, 'person', false, true).plugins,
                         tooltip: {
                             callbacks: {
                                 title: (ctx) => labelsPlanOriginal[ctx[0].dataIndex],
@@ -1802,7 +1807,7 @@
             charts.chartPlanificadasRealizadas._metaArray = cruzamentoPessoas;
             charts.chartPlanificadasRealizadas._originalLabels = labelsPlanOriginal;
 
-            // 2. CUMPLIMIENTO POR SECTOR
+            // 2. CUMPLIMIENTO POR SECTOR (CARTÃO DUPLO: isWideCard = true)
             let resultadoSetores = [];
             for (let s in setoresMap) {
                 const item = setoresMap[s];
@@ -1814,11 +1819,11 @@
             document.getElementById('cont-sector').style.height = Math.max(300, resultadoSetores.length * 28 + 40) + "px";
             charts.chartCumplimientoSector = new Chart(document.getElementById('chartCumplimientoSector'), {
                 type: 'bar',
-                data: { labels: resultadoSetores.map(x => quebrarNomeEmLinhas(x.setor, 14)), datasets: [{ backgroundColor: '#10b981', data: resultadoSetores.map(x => x.porcentagem) }] },
+                data: { labels: resultadoSetores.map(x => quebrarNomeEquilibrado(x.setor, 18)), datasets: [{ backgroundColor: '#10b981', data: resultadoSetores.map(x => x.porcentagem) }] },
                 options: {
-                    ...getOptions(true, '#000000', false, 'pct', [], 'sector'),
+                    ...getOptions(true, '#000000', false, 'pct', [], 'sector', false, true),
                     plugins: {
-                        ...getOptions(true, '#000000', false, 'pct', [], 'sector').plugins,
+                        ...getOptions(true, '#000000', false, 'pct', [], 'sector', false, true).plugins,
                         tooltip: {
                             callbacks: {
                                 title: (ctx) => resultadoSetores[ctx[0].dataIndex].setor,
@@ -1842,7 +1847,7 @@
                 totalSegurt += globalRawData.segurtPorNome[nome];
             }
             const lSegurtOriginal = Object.keys(mapSegurtFiltrado).sort((a,b) => a.localeCompare(b));
-            const lSegurtCard = lSegurtOriginal.map(x => quebrarNomeEmLinhas(x, 14));
+            const lSegurtCard = lSegurtOriginal.map(x => quebrarNomeEquilibrado(x, 14));
 
             document.getElementById('cont-segurt').style.height = Math.max(300, lSegurtOriginal.length * 28 + 40) + "px";
             charts.chartSegurt = new Chart(document.getElementById('chartSegurt'), {
@@ -1897,7 +1902,7 @@
                 document.getElementById('chartManual').style.display = 'block';
 
                 const labelsManualOriginal = manualFiltrado.map(m => m.nome);
-                const labelsManualCard = labelsManualOriginal.map(x => quebrarNomeEmLinhas(x, 14));
+                const labelsManualCard = labelsManualOriginal.map(x => quebrarNomeEquilibrado(x, 14));
                 const valuesManual = manualFiltrado.map(m => m.porcentagem);
 
                 contManual.style.height = Math.max(300, labelsManualOriginal.length * 28 + 40) + "px";
@@ -1934,7 +1939,7 @@
                 totalPend += globalRawData.pendientes[p];
             }
             const lPendOriginal = Object.keys(pendFiltrado).sort((a,b) => a.localeCompare(b));
-            const lPendCard = lPendOriginal.map(x => quebrarNomeEmLinhas(x, 14));
+            const lPendCard = lPendOriginal.map(x => quebrarNomeEquilibrado(x, 14));
 
             document.getElementById('cont-pend').style.height = Math.max(300, lPendOriginal.length * 28 + 40) + "px";
             charts.chartPendentes = new Chart(document.getElementById('chartPendentes'), {
@@ -2014,7 +2019,7 @@
             charts.chartNmPorArea = new Chart(document.getElementById('chartNmPorArea'), {
                 type: 'bar',
                 data: {
-                    labels: resultadoSectoresNR.map(x => quebrarNomeEmLinhas(x.setor, 14)),
+                    labels: resultadoSectoresNR.map(x => quebrarNomeEquilibrado(x.setor, 14)),
                     datasets: [{ backgroundColor: '#8b5cf6', data: resultadoSectoresNR.map(x => x.porcentagem) }]
                 },
                 options: {
@@ -2068,7 +2073,7 @@
             charts.chartHsliderPorArea = new Chart(document.getElementById('chartHsliderPorArea'), {
                 type: 'bar',
                 data: {
-                    labels: resultadoSectoresHS.map(x => quebrarNomeEmLinhas(x.setor, 14)),
+                    labels: resultadoSectoresHS.map(x => quebrarNomeEquilibrado(x.setor, 14)),
                     datasets: [{ backgroundColor: '#f97316', data: resultadoSectoresHS.map(x => x.porcentagem) }]
                 },
                 options: {
@@ -2119,7 +2124,7 @@
             });
 
             const lAOriginal = Object.keys(contagemAtrasadosPorPessoa).sort((a,b) => a.localeCompare(b));
-            const lACard = lAOriginal.map(x => quebrarNomeEmLinhas(x, 14));
+            const lACard = lAOriginal.map(x => quebrarNomeEquilibrado(x, 14));
 
             document.getElementById('cont-atrasados').style.height = Math.max(300, lAOriginal.length * 28 + 40) + "px";
             charts.chartAtrasadosP = new Chart(document.getElementById('chartAtrasadosP'), {
