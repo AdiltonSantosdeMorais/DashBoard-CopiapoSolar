@@ -512,7 +512,6 @@
             return false;
         }
 
-        // Divide o nome de forma equilibrada em duas metades com palavras completas
         function quebrarNomeEquilibrado(nome, maxChars = 16) {
             if (!nome) return "";
             if (nome.length <= maxChars) return nome;
@@ -818,7 +817,6 @@
             return stClean.includes(superClean(filterValue));
         };
 
-        // Opções calculadas com nomes alinhados na margem esquerda e folga proporcional
         const getOptions = (horiz, color = '#000000', stack = false, customMode = null, metaArray = [], clickType = null, isExpanded = false, isWideCard = false) => ({
             indexAxis: horiz ? 'y' : 'x',
             responsive: true,
@@ -872,7 +870,6 @@
                 x: { 
                     stacked: stack, 
                     grid: { display: false }, 
-                    // Margem automática na direita da escala para que nenhuma porcentagem estoure a borda
                     grace: horiz ? (customMode ? '35%' : '20%') : 0,
                     ticks: { color: '#000000', font: { family: 'Verdana', weight: 'bold', size: 9 } } 
                 }, 
@@ -884,9 +881,9 @@
                             if (isExpanded) {
                                 axis.width = 260;
                             } else if (isWideCard) {
-                                axis.width = 185; // Espaço confortável para os cartões de 2 colunas
+                                axis.width = 185;
                             } else {
-                                axis.width = 125; // Espaço otimizado para cartões de 1 coluna
+                                axis.width = 125;
                             }
                         }
                     },
@@ -894,7 +891,7 @@
                         color: '#000000', 
                         mirror: false,
                         autoSkip: false,
-                        crossAlign: 'near', // Alinha diretamente na margem esquerda (Left-to-Right)
+                        crossAlign: 'near',
                         textAlign: 'left',
                         padding: 4,
                         font: { family: 'Verdana', weight: 'bold', size: isExpanded ? 9 : 7.5 }
@@ -903,7 +900,6 @@
             }
         });
 
-        // Expansão de tela cheia sem cortes ao clicar
         function expand(id, title) {
             const src = charts[id]; if (!src) return;
             document.getElementById('modalOverlay').style.display = 'block';
@@ -1086,7 +1082,7 @@
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
                             <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.duracion}</td>
-                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.fechaCierre}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.fechaCierre}</td>
                             <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
                         </tr>
                     `;
@@ -1117,7 +1113,7 @@
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
                             <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
-                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.fechaCierre}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.fechaCierre}</td>
                             <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
                         </tr>
                     `;
@@ -1148,7 +1144,7 @@
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
                             <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
-                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 border border-gray-200">${nc.fechaCierre}</td>
+                            <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.fechaCierre}</td>
                             <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
                         </tr>
                     `;
@@ -1436,7 +1432,7 @@
                 globalRawData.hslider.activeMonthsCount = Math.max(activeMonthsHS, 6);
             }
 
-            // 6. TABELA OBRA (TABELA OBRASOFT) - DESIGNAR RESPONSÁVEIS CONFORME COLUNA AY E DIAS DE ATRASO CONFORME AK
+            // 6. TABELA OBRA (TABELA OBRASOFT) - STATUS ESTRITAMENTE DA COLUNA T E DIAS DE ATRASO DA COLUNA U
             const wsO = findSheet(wb, "TABELA OBRASOFT") || findSheet(wb, "OBRA");
             if (wsO) {
                 const maxRObra = wsO['!maxRow'] || 1500;
@@ -1450,14 +1446,15 @@
                         const cellH = wsO['H' + r];
                         const cellI = wsO['I' + r];
                         const cellJ = wsO['J' + r];
-                        const cellR = wsO['R' + r];
-                        const cellT = wsO['T' + r];
-                        const cellAK = wsO['AK' + r];
-                        const cellAY = wsO['AY' + r];
+                        const cellR = wsO['R' + r]; // Etapa
+                        const cellT = wsO['T' + r]; // Status ("Atrasado" / "No prazo")
+                        const cellU = wsO['U' + r]; // Dias de atraso
+                        const cellAY = wsO['AY' + r]; // Responsável designado
 
                         const desc = cellH && cellH.v ? cellH.v.toString().trim() : "SIN DESCRIPCIÓN";
                         const plano = cellI && cellI.v ? cellI.v.toString().trim() : "SIN PLAN DE ACCIÓN";
 
+                        // Responsável designado conforme a COLUNA AY (com fallback para Coluna J se vazio)
                         let respRaw = "";
                         if (cellAY && cellAY.v && String(cellAY.v).trim() !== "") {
                             respRaw = cellAY.v.toString().trim();
@@ -1473,16 +1470,17 @@
                         const stRaw = cellT && cellT.v ? cellT.v.toString().trim() : "";
                         const stLimpo = superClean(stRaw);
 
-                        let diasAtrasoNum = null;
+                        // Dias de atraso conforme a COLUNA U
+                        let diasAtrasoNum = 0;
                         let diasAtrasoStr = "0";
 
-                        if (cellAK && cellAK.v !== undefined && cellAK.v !== null && String(cellAK.v).trim() !== "") {
-                            const valParsed = parseFloat(String(cellAK.v).replace(',', '.').trim());
+                        if (cellU && cellU.v !== undefined && cellU.v !== null && String(cellU.v).trim() !== "") {
+                            const valParsed = parseFloat(String(cellU.v).replace(',', '.').trim());
                             if (!isNaN(valParsed)) {
                                 diasAtrasoNum = valParsed;
                                 diasAtrasoStr = String(Math.round(valParsed));
                             } else {
-                                diasAtrasoStr = String(cellAK.v).trim();
+                                diasAtrasoStr = String(cellU.v).trim();
                             }
                         }
 
@@ -1495,10 +1493,8 @@
                         if (etLimpo.includes("VERIF")) globalRawData.obra.kpis.v++;
                         if (etLimpo.includes("FIN")) globalRawData.obra.kpis.f++;
 
-                        let isAtrasado = stLimpo.includes("ATRA") || stLimpo.includes("ATRAS");
-                        if (diasAtrasoNum !== null && diasAtrasoNum > 0) {
-                            isAtrasado = true;
-                        }
+                        // Identifica atrasado ESTRITAMENTE conforme a Coluna T (Status = "Atrasado")
+                        const isAtrasado = stLimpo.includes("ATRA");
 
                         if ((etLimpo.includes("EXEC") || etLimpo.includes("EJEC")) && isAtrasado) {
                             globalRawData.obra.kpis.a++;
@@ -1629,17 +1625,17 @@
 
                 let tipoCategoria = "NOPRAZO";
 
-                if (statusLimpo.includes("ATRA") || (r.diasAtrasoNum !== null && r.diasAtrasoNum > 0)) {
+                if (r.isAtrasado) {
                     badgeClass = "status-atrasado";
                     statusLabel = "Atrasado";
                     tipoCategoria = "ATRASADO";
-                } else if (r.diasAtrasoNum !== null && r.diasAtrasoNum >= -3 && r.diasAtrasoNum <= 0) {
+                } else if (statusLimpo.includes("ALER") || statusLimpo.includes("ATEN") || statusLimpo.includes("VENC")) {
                     badgeClass = "status-alerta";
-                    statusLabel = `Atención (${Math.abs(Math.round(r.diasAtrasoNum))}d)`;
+                    statusLabel = r.status;
                     tipoCategoria = "ALERTA";
                 } else {
                     badgeClass = "status-prazo";
-                    statusLabel = "No prazo";
+                    statusLabel = r.status || "No prazo";
                     tipoCategoria = "NOPRAZO";
                 }
 
@@ -1684,7 +1680,6 @@
             const fMonthNM = document.getElementById("filterMonthNM").value;
             const fMonthHS = document.getElementById("filterMonthHS").value;
 
-            // CONSOLIDACIÓN TOTAL
             let mapPessoasConsolidadas = new Map();
 
             // 1. Planificadas
@@ -2095,7 +2090,7 @@
             charts.chartHsliderPorArea._metaArray = resultadoSectoresHS;
             charts.chartHsliderPorArea._originalLabels = resultadoSectoresHS.map(x => x.setor);
 
-            // 9. ATRASADOS POR PERSONA (EN EJEC.)
+            // 9. ATRASADOS POR PERSONA (EN EJEC.) - ESTRITAMENTE CONFORME COLUNA T
             let contagemAtrasadosPorPessoa = {};
 
             globalRawData.obra.rowsExecucao.forEach(row => {
