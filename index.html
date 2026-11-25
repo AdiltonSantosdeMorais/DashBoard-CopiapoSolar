@@ -74,8 +74,12 @@
                 <div class="h-10 w-[2px] bg-black hidden md:block"></div>
                 <div>
                     <h1 class="text-xs md:text-md font-black tracking-tight">ELECNOR CHILE | GESTIÓN DE SEGURIDAD & CALIDAD 2026</h1>
-                    <div id="statusSincronizacao" class="text-[10px] text-gray-500 font-bold normal-case mt-0.5">
-                        Conectando com o Google Planilhas...
+                    <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                        <div id="statusSincronizacao" class="text-[10px] text-gray-500 font-bold normal-case">
+                            Conectando com o Google Planilhas...
+                        </div>
+                        <span id="badgeFiltroAtivo" class="hidden bg-emerald-100 text-emerald-900 border border-emerald-400 px-2 py-0.5 rounded text-[10px] font-black cursor-pointer" onclick="limparFiltros()" title="Clique para limpar o filtro">
+                        </span>
                     </div>
                 </div>
             </div>
@@ -186,7 +190,7 @@
                 <div class="pbi-card-body">
                     <div id="cont-manual" class="w-full h-full relative"><canvas id="chartManual"></canvas></div>
                     <div id="msgManualVazio" class="hidden absolute inset-0 flex items-center justify-center p-4 text-center text-xs font-bold text-gray-500 bg-white bg-opacity-90">
-                        SIN INSPECCIONES MANUALES PROGRAMADAS PARA ESTA PERSONA
+                        SIN INSPECCIONES MANUALES PROGRAMADAS PARA ESTA PERSONA / SECTOR
                     </div>
                 </div>
             </div>
@@ -316,7 +320,7 @@
             </div>
         </div>
 
-        <!-- SECCIONES DE CALIDAD (NC) -->
+        <!-- 1. TABELA NC CLIENTE -->
         <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
             <div class="pbi-card-header bg-[#bae6fd] !border-b-2 !border-[#0ea5e9]">
                 <div class="flex items-center gap-4">
@@ -327,7 +331,7 @@
                     <span class="text-xs font-bold text-black">FILTRO STATUS:</span>
                     <select id="filterStatusNCCliente" class="filter-select !w-56 !py-1 text-xs bg-white" onchange="renderizarTablasCalidad()">
                         <option value="ALL">TODOS LOS STATUS</option>
-                        <option value="ABIERTO">ABIERTO / ABIERTA</option>
+                        <option value="ABIERTO">ABIERTO / ABIERTA / ABERTO</option>
                         <option value="CONCLUID">CONCLUÍDA / CONCLUÍDO</option>
                     </select>
                 </div>
@@ -355,6 +359,7 @@
             </div>
         </div>
 
+        <!-- 2. TABELA NC SUBCONTRATISTA -->
         <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
             <div class="pbi-card-header bg-[#bbf7d0] !border-b-2 !border-[#22c55e]">
                 <div class="flex items-center gap-4">
@@ -365,34 +370,36 @@
                     <span class="text-xs font-bold text-black">FILTRO STATUS:</span>
                     <select id="filterStatusNCSub" class="filter-select !w-56 !py-1 text-xs bg-white" onchange="renderizarTablasCalidad()">
                         <option value="ALL">TODOS LOS STATUS</option>
-                        <option value="ABIERTO">ABIERTO / ABIERTA</option>
+                        <option value="ABIERTO">ABIERTO / ABIERTA / ABERTO</option>
                         <option value="CONCLUID">CONCLUÍDA / CONCLUÍDO</option>
                     </select>
                 </div>
             </div>
             <div class="p-0 overflow-x-auto overflow-y-auto" style="max-height: 450px;">
-                <table class="w-full border-collapse" style="min-width: 1250px;">
+                <table class="w-full border-collapse" style="min-width: 1350px;">
                     <thead class="sticky top-0 shadow-sm z-10">
                         <tr>
-                            <th class="th-nc-default" style="width: 30%;">DESCRIPCIÓN DEL NC</th>
-                            <th class="th-nc-default text-center" style="width: 10%;">NC NÚMERO</th>
-                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE EMISIÓN</th>
-                            <th class="th-nc-yellow text-center" style="width: 8%;">FECHA DE CIERRE PREVISTA</th>
+                            <th class="th-nc-default" style="width: 28%;">DESCRIPCIÓN DEL NC</th>
+                            <th class="th-nc-default text-center" style="width: 9%;">NC NÚMERO</th>
+                            <th class="th-nc-yellow text-center" style="width: 7%;">FECHA DE EMISIÓN</th>
+                            <th class="th-nc-yellow text-center" style="width: 7%;">FECHA DE CIERRE PREVISTA</th>
                             <th class="th-nc-default text-center" style="width: 8%;">DISCIPLINA</th>
-                            <th class="th-nc-default text-center" style="width: 8%;">FECHA DE LA ACCIÓN</th>
+                            <th class="th-nc-default text-center" style="width: 7%;">FECHA DE LA ACCIÓN</th>
                             <th class="th-nc-default text-center" style="width: 8%;">CONTRATISTA</th>
-                            <th class="th-nc-default text-center" style="width: 8%;">STATUS ACTUAL</th>
+                            <th class="th-nc-default text-center" style="width: 7%;">STATUS ACTUAL</th>
+                            <th class="th-nc-default text-center" style="width: 8%;">RESPONSABLE</th>
                             <th class="th-nc-default text-center" style="width: 6%;">FECHA DE CIERRE</th>
-                            <th class="th-nc-green text-center" style="width: 6%;">RESOLUCIÓN (DIAS)</th>
+                            <th class="th-nc-green text-center" style="width: 5%;">RESOLUCIÓN (DIAS)</th>
                         </tr>
                     </thead>
                     <tbody id="tableBodyNCSub">
-                        <tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">Cargando información online...</td></tr>
+                        <tr><td colspan="11" class="text-center py-6 text-gray-500 font-bold normal-case">Cargando información online...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
+        <!-- 3. TABELA NC INTERNAS -->
         <div class="pbi-card mb-4" style="height: auto; min-height: auto; cursor: default;">
             <div class="pbi-card-header bg-[#fed7aa] !border-b-2 !border-[#f97316]">
                 <div class="flex items-center gap-4">
@@ -403,7 +410,7 @@
                     <span class="text-xs font-bold text-black">FILTRO STATUS:</span>
                     <select id="filterStatusNCInt" class="filter-select !w-56 !py-1 text-xs bg-white" onchange="renderizarTablasCalidad()">
                         <option value="ALL">TODOS LOS STATUS</option>
-                        <option value="ABIERTO">ABIERTO / ABIERTA</option>
+                        <option value="ABIERTO">ABIERTO / ABIERTA / ABERTO</option>
                         <option value="CONCLUID">CONCLUÍDO / CONCLUÍDA</option>
                     </select>
                 </div>
@@ -425,7 +432,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBodyNCInt">
-                        <tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">Cargando informações online...</td></tr>
+                        <tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">Cargando información online...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -435,7 +442,7 @@
 
     <script>
         const SPREADSHEET_ID_HSE = '14_nZU83Nrd-YczoFtZ_q5O40xEyxF2h0PS-hsiAcoRU';
-        const SPREADSHEET_ID_CALIDAD = '1KY5o6pmAScXWo2Rj-wym7rRNPIZCsD1f6LbZe7dznsA';
+        const SPREADSHEET_ID_CALIDAD = '13Q47XCGzK3lzitxJbll5xK9Msg046hi9dLZYTNLsDJ8';
 
         Chart.register(ChartDataLabels);
         let charts = {};
@@ -596,92 +603,91 @@
             return s.includes("#") ? "S/F" : s;
         };
 
-        function fetchSheetDataResiliente(sheetId, sheetName) {
-            return new Promise(async (resolve) => {
-                const jsonpPromise = new Promise((resJSONP) => {
-                    const callbackName = 'cb_' + Math.random().toString(36).substring(2, 9);
-                    const script = document.createElement('script');
-                    const timer = setTimeout(() => {
-                        cleanup();
-                        resJSONP(null);
-                    }, 5000);
+        async function fetchWorkbookCSVBypass(sheetId, gid) {
+            const targetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+            const urlsToTry = [
+                targetUrl,
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+            ];
 
-                    function cleanup() {
-                        clearTimeout(timer);
-                        if (script.parentNode) script.parentNode.removeChild(script);
-                        delete window[callbackName];
-                    }
-
-                    window[callbackName] = function(json) {
-                        cleanup();
-                        if (!json || !json.table) {
-                            resJSONP(null);
-                            return;
-                        }
-                        const sheetObj = {};
-                        const cols = json.table.cols || [];
-                        const rows = json.table.rows || [];
-
-                        cols.forEach((col, cIdx) => {
-                            const colLetra = numParaColunaLetra(cIdx);
-                            const label = col ? (col.label || col.id || "") : "";
-                            sheetObj[colLetra + '1'] = { v: label, w: String(label), t: 's' };
-                        });
-
-                        rows.forEach((row, rIdx) => {
-                            const rowNum = rIdx + 2;
-                            if (row && row.c) {
-                                row.c.forEach((cell, cIdx) => {
-                                    if (cell && cell.v !== null && cell.v !== undefined) {
-                                        const colLetra = numParaColunaLetra(cIdx);
-                                        let valor = cell.v;
-                                        if (typeof valor === 'string' && valor.startsWith('Date(')) {
-                                            const p = valor.match(/\d+/g);
-                                            if (p && p.length >= 3) valor = new Date(p[0], p[1], p[2]);
-                                        }
-                                        sheetObj[colLetra + rowNum] = { 
-                                            v: valor, 
-                                            w: cell.f || (valor instanceof Date ? valor.toLocaleDateString('es-CL') : String(valor)),
-                                            t: typeof valor === 'number' ? 'n' : (valor instanceof Date ? 'd' : 's')
-                                        };
-                                    }
-                                });
-                            }
-                        });
-
-                        const totalRows = rows.length + 2;
-                        const maxColIdx = Math.max(cols.length - 1, 55);
-                        sheetObj['!ref'] = `A1:${numParaColunaLetra(maxColIdx)}${totalRows}`;
-                        sheetObj['!maxRow'] = totalRows;
-                        resJSONP(sheetObj);
-                    };
-
-                    script.onerror = () => { cleanup(); resJSONP(null); };
-                    script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${callbackName}&t=${Date.now()}`;
-                    document.body.appendChild(script);
-                });
-
-                const dataJSONP = await jsonpPromise;
-                if (dataJSONP) {
-                    resolve(dataJSONP);
-                    return;
-                }
-
+            for (let u of urlsToTry) {
                 try {
-                    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
-                    const resp = await fetch(csvUrl);
+                    const resp = await fetch(u);
                     if (resp.ok) {
                         const csvText = await resp.text();
-                        const workbook = XLSX.read(csvText, { type: 'string' });
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                        resolve(sheet || null);
-                        return;
+                        if (csvText && csvText.includes("NC")) {
+                            const wb = XLSX.read(csvText, { type: 'string' });
+                            return wb.Sheets[wb.SheetNames[0]];
+                        }
                     }
-                } catch (e) {
-                    console.warn(`Respaldo CSV no disponible para: ${sheetName}`);
+                } catch (e) {}
+            }
+            return null;
+        }
+
+        function fetchSheetDataResiliente(sheetId, sheetName) {
+            return new Promise((resolve) => {
+                const callbackName = 'cb_' + Math.random().toString(36).substring(2, 9);
+                const script = document.createElement('script');
+                const timer = setTimeout(() => {
+                    cleanup();
+                    resolve(null);
+                }, 6500);
+
+                function cleanup() {
+                    clearTimeout(timer);
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    delete window[callbackName];
                 }
 
-                resolve(null);
+                window[callbackName] = function(json) {
+                    cleanup();
+                    if (!json || !json.table) {
+                        resolve(null);
+                        return;
+                    }
+                    const sheetObj = {};
+                    const cols = json.table.cols || [];
+                    const rows = json.table.rows || [];
+
+                    cols.forEach((col, cIdx) => {
+                        const colLetra = numParaColunaLetra(cIdx);
+                        const label = col ? (col.label || col.id || "") : "";
+                        sheetObj[colLetra + '1'] = { v: label, w: String(label), t: 's' };
+                    });
+
+                    rows.forEach((row, rIdx) => {
+                        const rowNum = rIdx + 2;
+                        if (row && row.c) {
+                            row.c.forEach((cell, cIdx) => {
+                                if (cell && (cell.v !== null && cell.v !== undefined || cell.f)) {
+                                    const colLetra = numParaColunaLetra(cIdx);
+                                    let valor = cell.v !== null && cell.v !== undefined ? cell.v : cell.f;
+                                    if (typeof valor === 'string' && valor.startsWith('Date(')) {
+                                        const p = valor.match(/\d+/g);
+                                        if (p && p.length >= 3) valor = new Date(p[0], p[1], p[2]);
+                                    }
+                                    sheetObj[colLetra + rowNum] = { 
+                                        v: valor, 
+                                        w: cell.f || (valor instanceof Date ? valor.toLocaleDateString('es-CL') : String(valor)),
+                                        t: typeof valor === 'number' ? 'n' : (valor instanceof Date ? 'd' : 's')
+                                    };
+                                }
+                            });
+                        }
+                    });
+
+                    const totalRows = rows.length + 2;
+                    const maxColIdx = Math.max(cols.length - 1, 55);
+                    sheetObj['!ref'] = `A1:${numParaColunaLetra(maxColIdx)}${totalRows}`;
+                    sheetObj['!maxRow'] = totalRows;
+                    resolve(sheetObj);
+                };
+
+                script.onerror = () => { cleanup(); resolve(null); };
+                script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${callbackName}&t=${Date.now()}`;
+                document.body.appendChild(script);
             });
         }
 
@@ -702,12 +708,12 @@
             ];
 
             const abasCalidad = [
-                "Contr. NC Cliente",
-                "Contr. NC Subcontratista",
-                "Contr. NC Internas"
+                { nome: "Contr. NC Cliente", gid: "0" },
+                { nome: "Contr. NC Subcontratista", gid: "309673258" },
+                { nome: "Contr. NC Internas", gid: "2" }
             ];
 
-            const carregarLista = async (id, lista) => {
+            const carregarListaHSE = async (id, lista) => {
                 const resultados = await Promise.all(lista.map(async nome => {
                     const sheet = await fetchSheetDataResiliente(id, nome);
                     return { nome, sheet };
@@ -720,10 +726,26 @@
                 });
             };
 
+            const carregarListaCalidad = async (id, lista) => {
+                const resultados = await Promise.all(lista.map(async item => {
+                    let sheet = await fetchWorkbookCSVBypass(id, item.gid);
+                    if (!sheet) {
+                        sheet = await fetchSheetDataResiliente(id, item.nome);
+                    }
+                    return { nome: item.nome, sheet };
+                }));
+                resultados.forEach(res => {
+                    if (res && res.sheet) {
+                        wb.Sheets[res.nome] = res.sheet;
+                        wb.SheetNames.push(res.nome);
+                    }
+                });
+            };
+
             try {
                 await Promise.all([
-                    carregarLista(SPREADSHEET_ID_HSE, abasHSE),
-                    carregarLista(SPREADSHEET_ID_CALIDAD, abasCalidad)
+                    carregarListaHSE(SPREADSHEET_ID_HSE, abasHSE),
+                    carregarListaCalidad(SPREADSHEET_ID_CALIDAD, abasCalidad)
                 ]);
 
                 if (wb.SheetNames.length === 0) {
@@ -832,14 +854,19 @@
             onClick: (e, activeElements, chart) => {
                 if (activeElements && activeElements.length > 0) {
                     const idx = activeElements[0].index;
-                    const rawLabel = chart.data.labels[idx];
+                    // Usa sempre o nome original completo (sem quebra de linha) para filtrar perfeitamente
+                    const originalList = chart._originalLabels || chart.data.labels;
+                    const rawLabel = originalList[idx];
                     const label = Array.isArray(rawLabel) ? rawLabel.join(" ") : rawLabel;
+
                     if (clickType === 'person') {
                         const currentVal = document.getElementById("filterPerson").value;
                         document.getElementById("filterPerson").value = (currentVal === label) ? "ALL" : label;
                         aplicarFiltros();
                     } else if (clickType === 'sector') {
                         const currentVal = document.getElementById("filterSector").value;
+                        // Ao clicar na barra de um setor, filtra todas as pessoas daquele setor e limpa o filtro de pessoa individual
+                        document.getElementById("filterPerson").value = "ALL";
                         document.getElementById("filterSector").value = (currentVal === label) ? "ALL" : label;
                         aplicarFiltros();
                     }
@@ -976,7 +1003,7 @@
             globalRawData.ncSub = [];
             globalRawData.ncInternas = [];
 
-            const statusValidos = ["ABIERTO", "ABIERTA", "CONCLUÍDA", "CONCLUIDA", "CONCLUÍDO", "CONCLUIDO", "AGUARDANDO PARECER DO CLIENTE"];
+            const statusValidos = ["ABIERTO", "ABIERTA", "ABERTO", "CONCLUÍDA", "CONCLUIDA", "CONCLUÍDO", "CONCLUIDO", "AGUARDANDO PARECER DO CLIENTE"];
 
             const wsCliente = findSheet(wb, "Contr. NC Cliente") || findSheet(wb, "NC Cliente");
             if (wsCliente) {
@@ -1013,6 +1040,18 @@
                         const statusRaw = cellStatus.v.toString().trim().toUpperCase();
                         if (statusValidos.some(st => statusRaw.includes(st))) {
                             const desc = wsSub['B' + r] ? wsSub['B' + r].v : "";
+                            
+                            // Coluna M = Responsable (exibe exatamente o que está na célula: número ou texto)
+                            let respVal = "";
+                            const cellResp = wsSub['M' + r];
+                            if (cellResp && (cellResp.v !== undefined && cellResp.v !== null || cellResp.w)) {
+                                const rawStr = cellResp.v !== undefined && cellResp.v !== null ? String(cellResp.v) : String(cellResp.w);
+                                const cleanStr = rawStr.replace(/\s+/g, ' ').trim();
+                                if (cleanStr !== "") {
+                                    respVal = cleanStr.toUpperCase();
+                                }
+                            }
+
                             globalRawData.ncSub.push({
                                 desc: desc ? desc.toString().trim() : "",
                                 ncNum: cellNC.v.toString().trim(),
@@ -1022,6 +1061,7 @@
                                 accionElecnor: formatarData(wsSub['H' + r] ? wsSub['H' + r].v : ""),
                                 contratista: wsSub['K' + r] ? wsSub['K' + r].v.toString().trim().toUpperCase() : "",
                                 status: statusRaw,
+                                responsable: respVal,
                                 fechaCierre: formatarData(wsSub['N' + r] ? wsSub['N' + r].v : ""),
                                 resolucion: wsSub['O' + r] && wsSub['O' + r].v !== undefined ? wsSub['O' + r].v : ""
                             });
@@ -1096,7 +1136,7 @@
             document.getElementById("badgeNCSub").innerText = `${listSub.length} NC REGISTRADAS`;
 
             if (listSub.length === 0) {
-                tbodySub.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Subcontratista para este filtro.</td></tr>`;
+                tbodySub.innerHTML = `<tr><td colspan="11" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Subcontratista para este filtro.</td></tr>`;
             } else {
                 listSub.forEach(nc => {
                     const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
@@ -1113,6 +1153,7 @@
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.accionElecnor}</td>
                             <td class="text-xs text-center font-bold px-2 py-2 border border-gray-200">${nc.contratista}</td>
                             <td class="${classStatus} text-xs px-2 py-2 border border-gray-200 whitespace-nowrap">${nc.status}</td>
+                            <td class="text-xs text-center font-black text-blue-900 px-2 py-2 border border-gray-200">${nc.responsable || "-"}</td>
                             <td class="text-xs text-center font-bold whitespace-nowrap px-2 py-2 border border-gray-200">${nc.fechaCierre}</td>
                             <td class="${classResolucion} text-xs px-2 py-2 border border-gray-200">${nc.resolucion}</td>
                         </tr>
@@ -1168,6 +1209,13 @@
             return "SIN ÁREA";
         }
 
+        // Verifica se a pessoa pertence ao setor filtrado (usando coincidência de nome exata ou parcial)
+        function pessoaPertenceAoSetor(nomePessoa, setorAlvo) {
+            if (setorAlvo === "ALL") return true;
+            const setorDaPessoa = obterSetorDaPessoa(nomePessoa);
+            return setorDaPessoa === setorAlvo;
+        }
+
         function carregarDadosBrutos(wb) {
             globalRawData.segurtPorNome = {};
             globalRawData.planificadas = [];
@@ -1193,7 +1241,8 @@
                         vacias = 0;
                         const nome = cell.v.toString().trim().toUpperCase();
                         const clean = superClean(nome);
-                        if (clean && !clean.includes("RESPONSABLE") && !clean.includes("INSPECCION") && !clean.includes("FILTRO")) {
+                        // Ignora cabeçalhos ou letras soltas de coluna (como "C" ou "K")
+                        if (clean && clean.length > 2 && !clean.includes("RESPONSABLE") && !clean.includes("INSPECCION") && !clean.includes("FILTRO")) {
                             globalRawData.segurtPorNome[nome] = (globalRawData.segurtPorNome[nome] || 0) + 1;
                             globalRawData.pessoasList.add(nome);
                         }
@@ -1204,7 +1253,7 @@
                 }
             }
 
-            // 2. PLANIFICADAS
+            // 2. PLANIFICADAS (Eliminando cabeçalhos falsos "A" e "C" da linha 1)
             const wsPlan = findSheet(wb, "INSPECCIONESPLANIFICADAS") || findSheet(wb, "PLANIFICADAS");
             if (wsPlan) {
                 const metasEspeciais20 = ["JHERALDY HIDALGO", "ADILTON MORAIS", "MARIA TORRES", "GEORGE BARRAZA"];
@@ -1218,9 +1267,15 @@
                     if (cellC && cellC.v && String(cellC.v).trim() !== "") {
                         const nomeOriginal = cellC.v.toString().trim().toUpperCase();
                         const cleanNome = superClean(nomeOriginal);
-                        if (cleanNome.includes("NOMBRE") || cleanNome.includes("APELLIDO")) continue;
 
-                        const setorOriginal = cellA && cellA.v ? cellA.v.toString().trim().toUpperCase() : "SIN ÁREA";
+                        // Ignora cabeçalhos e letras isoladas (como "C" na linha 1)
+                        if (cleanNome.length <= 2 || cleanNome.includes("NOMBRE") || cleanNome.includes("APELLIDO") || cleanNome.includes("PERSONA")) continue;
+
+                        let setorOriginal = cellA && cellA.v ? cellA.v.toString().trim().toUpperCase() : "SIN ÁREA";
+                        const cleanSetor = superClean(setorOriginal);
+                        if (cleanSetor.length <= 1 || cleanSetor.includes("AREA") || cleanSetor.includes("SECTOR")) {
+                            setorOriginal = "SIN ÁREA";
+                        }
                         
                         let qtdPrevista = 0;
                         if (cellD && cellD.v !== undefined) {
@@ -1251,7 +1306,9 @@
                             globalRawData.pessoaSectorMap[k] = setorOriginal;
                         });
 
-                        globalRawData.setoresList.add(setorOriginal);
+                        if (setorOriginal !== "SIN ÁREA") {
+                            globalRawData.setoresList.add(setorOriginal);
+                        }
                         globalRawData.pessoasList.add(nomeOriginal);
                     }
                 }
@@ -1300,7 +1357,7 @@
                     const rawName = row[nameColIdx] ? row[nameColIdx].toString().trim() : "";
                     const cleanName = superClean(rawName);
 
-                    if (cleanName && !cleanName.includes("NOMBRE") && !cleanName.includes("TOTAL") && !cleanName.includes("PUESTO")) {
+                    if (cleanName && cleanName.length > 2 && !cleanName.includes("NOMBRE") && !cleanName.includes("TOTAL") && !cleanName.includes("PUESTO")) {
                         const rawPrev = row[prevColIdx];
                         const rawReal = row[realColIdx];
 
@@ -1349,8 +1406,11 @@
                     const cellB = wsN['B' + r];
 
                     if (cellA && cellA.v && cellA.v.toString().trim()) {
-                        currentSector = cellA.v.toString().replace("(NM)", "").trim().toUpperCase();
-                        globalRawData.setoresList.add(currentSector);
+                        const secTemp = cellA.v.toString().replace("(NM)", "").trim().toUpperCase();
+                        if (superClean(secTemp).length > 1) {
+                            currentSector = secTemp;
+                            globalRawData.setoresList.add(currentSector);
+                        }
                     }
 
                     const tipoDoc = cellB && cellB.v ? cellB.v.toString().trim().toUpperCase() : "";
@@ -1406,7 +1466,7 @@
                     if (cellA && cellA.v) {
                         const areaName = cellA.v.toString().trim().toUpperCase();
                         const cleanA = superClean(areaName);
-                        if (!cleanA.includes("AREA") && !cleanA.includes("TOTAL")) {
+                        if (cleanA.length > 1 && !cleanA.includes("AREA") && !cleanA.includes("TOTAL")) {
                             globalRawData.setoresList.add(areaName);
                             if (!globalRawData.hslider.sectorsData[areaName]) {
                                 globalRawData.hslider.sectorsData[areaName] = {
@@ -1432,7 +1492,7 @@
                 globalRawData.hslider.activeMonthsCount = Math.max(activeMonthsHS, 6);
             }
 
-            // 6. TABELA OBRA (TABELA OBRASOFT) - STATUS ESTRITAMENTE DA COLUNA T E DIAS DE ATRASO DA COLUNA U
+            // 6. TABELA OBRA (TABELA OBRASOFT)
             const wsO = findSheet(wb, "TABELA OBRASOFT") || findSheet(wb, "OBRA");
             if (wsO) {
                 const maxRObra = wsO['!maxRow'] || 1500;
@@ -1446,15 +1506,14 @@
                         const cellH = wsO['H' + r];
                         const cellI = wsO['I' + r];
                         const cellJ = wsO['J' + r];
-                        const cellR = wsO['R' + r]; // Etapa
-                        const cellT = wsO['T' + r]; // Status ("Atrasado" / "No prazo")
-                        const cellU = wsO['U' + r]; // Dias de atraso
-                        const cellAY = wsO['AY' + r]; // Responsável designado
+                        const cellR = wsO['R' + r];
+                        const cellT = wsO['T' + r];
+                        const cellU = wsO['U' + r];
+                        const cellAY = wsO['AY' + r];
 
                         const desc = cellH && cellH.v ? cellH.v.toString().trim() : "SIN DESCRIPCIÓN";
                         const plano = cellI && cellI.v ? cellI.v.toString().trim() : "SIN PLAN DE ACCIÓN";
 
-                        // Responsável designado conforme a COLUNA AY (com fallback para Coluna J se vazio)
                         let respRaw = "";
                         if (cellAY && cellAY.v && String(cellAY.v).trim() !== "") {
                             respRaw = cellAY.v.toString().trim();
@@ -1470,7 +1529,6 @@
                         const stRaw = cellT && cellT.v ? cellT.v.toString().trim() : "";
                         const stLimpo = superClean(stRaw);
 
-                        // Dias de atraso conforme a COLUNA U
                         let diasAtrasoNum = 0;
                         let diasAtrasoStr = "0";
 
@@ -1493,7 +1551,6 @@
                         if (etLimpo.includes("VERIF")) globalRawData.obra.kpis.v++;
                         if (etLimpo.includes("FIN")) globalRawData.obra.kpis.f++;
 
-                        // Identifica atrasado ESTRITAMENTE conforme a Coluna T (Status = "Atrasado")
                         const isAtrasado = stLimpo.includes("ATRA");
 
                         if ((etLimpo.includes("EXEC") || etLimpo.includes("EJEC")) && isAtrasado) {
@@ -1528,7 +1585,9 @@
                 dataP.forEach((r, i) => {
                     if (i >= 1 && superClean(r.AJ).includes("PENDIENTE")) {
                         const resp = r.K ? r.K.toString().trim().toUpperCase() : "SIN RESPONSABLE";
-                        globalRawData.pendientes[resp] = (globalRawData.pendientes[resp] || 0) + 1;
+                        if (superClean(resp).length > 2) {
+                            globalRawData.pendientes[resp] = (globalRawData.pendientes[resp] || 0) + 1;
+                        }
                     }
                 });
             }
@@ -1563,13 +1622,7 @@
                 selSectorAtrasados.innerHTML += `<option value="OTROS" ${currentSecAtr === 'OTROS' ? 'selected' : ''}>OTROS / SIN ÁREA</option>`;
             }
 
-            const selPerson = document.getElementById("filterPerson");
-            const currentPer = selPerson.value;
-            let optionsPerson = '<option value="ALL">TODAS LAS PERSONAS</option>';
-            Array.from(globalRawData.pessoasList).sort((a,b) => a.localeCompare(b)).forEach(p => {
-                optionsPerson += `<option value="${p}" ${p === currentPer ? 'selected' : ''}>${p}</option>`;
-            });
-            selPerson.innerHTML = optionsPerson;
+            atualizarDropdownPessoasPorSetor();
 
             const selMonthNM = document.getElementById("filterMonthNM");
             const currentMonthNM = selMonthNM.value;
@@ -1598,15 +1651,39 @@
             selPersonTabelaObra.innerHTML = optionsObra;
         }
 
+        function atualizarDropdownPessoasPorSetor() {
+            const fSector = document.getElementById("filterSector").value;
+            const selPerson = document.getElementById("filterPerson");
+            const currentPer = selPerson.value;
+            let optionsPerson = '<option value="ALL">TODAS LAS PERSONAS</option>';
+            Array.from(globalRawData.pessoasList)
+                .filter(p => pessoaPertenceAoSetor(p, fSector))
+                .sort((a,b) => a.localeCompare(b))
+                .forEach(p => {
+                    optionsPerson += `<option value="${p}" ${p === currentPer ? 'selected' : ''}>${p}</option>`;
+                });
+            selPerson.innerHTML = optionsPerson;
+        }
+
         function renderizarTabelaExecucao() {
             const tb = document.getElementById("tableBody");
             tb.innerHTML = "";
 
+            const fSectorGlobal = document.getElementById("filterSector").value;
+            const fPersonGlobal = document.getElementById("filterPerson").value;
             const filtroSetor = document.getElementById("filterSectorTabelaObra") ? document.getElementById("filterSectorTabelaObra").value : "ALL";
             const filtroStatus = document.getElementById("filterStatusTabelaObra").value;
             const filtroPessoa = document.getElementById("filterPersonTabelaObra").value;
 
             let rows = globalRawData.obra.rowsExecucao;
+
+            // Aplica também o filtro global se selecionado no gráfico de Setor ou Pessoa
+            if (fSectorGlobal !== "ALL") {
+                rows = rows.filter(r => r.setor === fSectorGlobal);
+            }
+            if (fPersonGlobal !== "ALL") {
+                rows = rows.filter(r => nomesCoincidem(r.resp, fPersonGlobal));
+            }
 
             if (filtroPessoa !== "ALL") {
                 rows = rows.filter(r => r.resp === filtroPessoa);
@@ -1680,9 +1757,24 @@
             const fMonthNM = document.getElementById("filterMonthNM").value;
             const fMonthHS = document.getElementById("filterMonthHS").value;
 
+            // Atualiza badge de filtro ativo no cabeçalho
+            const badgeFiltro = document.getElementById("badgeFiltroAtivo");
+            if (badgeFiltro) {
+                if (fSector !== "ALL" || fPerson !== "ALL") {
+                    const partes = [];
+                    if (fSector !== "ALL") partes.push(`SECTOR: ${fSector}`);
+                    if (fPerson !== "ALL") partes.push(`PERSONA: ${fPerson}`);
+                    badgeFiltro.innerText = `FILTRO ACTIVO: ${partes.join(" | ")} ✕`;
+                    badgeFiltro.classList.remove("hidden");
+                } else {
+                    badgeFiltro.classList.add("hidden");
+                }
+            }
+
+            atualizarDropdownPessoasPorSetor();
+
             let mapPessoasConsolidadas = new Map();
 
-            // 1. Planificadas
             globalRawData.planificadas.forEach(p => {
                 mapPessoasConsolidadas.set(p.nome, {
                     nome: p.nome,
@@ -1692,7 +1784,6 @@
                 });
             });
 
-            // 2. SEGURT-MANUAL
             globalRawData.manual.forEach(m => {
                 let achou = false;
                 for (let [nomeP, dadosP] of mapPessoasConsolidadas.entries()) {
@@ -1711,7 +1802,6 @@
                 }
             });
 
-            // 3. SEGURT (Coluna K)
             for (let segNome in globalRawData.segurtPorNome) {
                 let achou = false;
                 for (let [nomeP, dadosP] of mapPessoasConsolidadas.entries()) {
@@ -1732,12 +1822,39 @@
 
             let listaPessoasFiltradas = Array.from(mapPessoasConsolidadas.values()).filter(item => {
                 if (fSector !== "ALL" && item.setor !== fSector) return false;
-                if (fPerson !== "ALL" && item.nome !== fPerson) return false;
+                if (fPerson !== "ALL" && !nomesCoincidem(item.nome, fPerson)) return false;
                 return true;
             });
 
             let cruzamentoPessoas = [];
             let setoresMap = {};
+
+            // Para calcular o gráfico de Setores completo (sem esconder os outros setores quando clica em um)
+            Array.from(mapPessoasConsolidadas.values()).forEach(p => {
+                let realizadoSegurt = 0;
+                let realizadoManual = 0;
+
+                for (let segNome in globalRawData.segurtPorNome) {
+                    if (nomesCoincidem(p.nome, segNome)) {
+                        realizadoSegurt += globalRawData.segurtPorNome[segNome];
+                    }
+                }
+
+                globalRawData.manual.forEach(m => {
+                    if (nomesCoincidem(p.nome, m.nome)) {
+                        realizadoManual += (m.realizado || 0);
+                    }
+                });
+
+                const realizadoTotal = realizadoSegurt + realizadoManual;
+                const previstoTotal = p.previsto > 0 ? p.previsto : 4;
+
+                if (p.setor && p.setor !== "SIN ÁREA") {
+                    if (!setoresMap[p.setor]) setoresMap[p.setor] = { previsto: 0, realizado: 0 };
+                    setoresMap[p.setor].previsto += previstoTotal;
+                    setoresMap[p.setor].realizado += realizadoTotal;
+                }
+            });
 
             listaPessoasFiltradas.forEach(p => {
                 let realizadoSegurt = 0;
@@ -1766,15 +1883,11 @@
                     porcentagem: pct,
                     setor: p.setor
                 });
-
-                if (!setoresMap[p.setor]) setoresMap[p.setor] = { previsto: 0, realizado: 0 };
-                setoresMap[p.setor].previsto += previstoTotal;
-                setoresMap[p.setor].realizado += realizadoTotal;
             });
 
             cruzamentoPessoas.sort((a, b) => a.nome.localeCompare(b.nome));
 
-            // 1. GRÁFICO: PLANIFICADAS VS REALIZADAS (CARTÃO DUPLO: isWideCard = true)
+            // 1. GRÁFICO: PLANIFICADAS VS REALIZADAS
             const labelsPlanOriginal = cruzamentoPessoas.map(x => x.nome);
             const labelsPlanCard = cruzamentoPessoas.map(x => quebrarNomeEquilibrado(x.nome, 18));
             const valuesPlan = cruzamentoPessoas.map(x => x.porcentagem);
@@ -1802,7 +1915,7 @@
             charts.chartPlanificadasRealizadas._metaArray = cruzamentoPessoas;
             charts.chartPlanificadasRealizadas._originalLabels = labelsPlanOriginal;
 
-            // 2. CUMPLIMIENTO POR SECTOR (CARTÃO DUPLO: isWideCard = true)
+            // 2. CUMPLIMIENTO POR SECTOR (Destaca o setor selecionado)
             let resultadoSetores = [];
             for (let s in setoresMap) {
                 const item = setoresMap[s];
@@ -1811,10 +1924,15 @@
             }
             resultadoSetores.sort((a, b) => a.setor.localeCompare(b.setor));
 
+            const coresSetores = resultadoSetores.map(x => {
+                if (fSector === "ALL") return '#10b981';
+                return x.setor === fSector ? '#059669' : '#cbd5e1';
+            });
+
             document.getElementById('cont-sector').style.height = Math.max(300, resultadoSetores.length * 28 + 40) + "px";
             charts.chartCumplimientoSector = new Chart(document.getElementById('chartCumplimientoSector'), {
                 type: 'bar',
-                data: { labels: resultadoSetores.map(x => quebrarNomeEquilibrado(x.setor, 18)), datasets: [{ backgroundColor: '#10b981', data: resultadoSetores.map(x => x.porcentagem) }] },
+                data: { labels: resultadoSetores.map(x => quebrarNomeEquilibrado(x.setor, 18)), datasets: [{ backgroundColor: coresSetores, data: resultadoSetores.map(x => x.porcentagem) }] },
                 options: {
                     ...getOptions(true, '#000000', false, 'pct', [], 'sector', false, true),
                     plugins: {
@@ -1833,11 +1951,12 @@
             });
             charts.chartCumplimientoSector._originalLabels = resultadoSetores.map(x => x.setor);
 
-            // 3. SEGURT POR PERSONA
+            // 3. SEGURT POR PERSONA (Filtra por Setor e Pessoa)
             let mapSegurtFiltrado = {};
             let totalSegurt = 0;
             for (let nome in globalRawData.segurtPorNome) {
-                if (fPerson !== "ALL" && nome !== fPerson) continue;
+                if (!pessoaPertenceAoSetor(nome, fSector)) continue;
+                if (fPerson !== "ALL" && !nomesCoincidem(nome, fPerson)) continue;
                 mapSegurtFiltrado[nome] = globalRawData.segurtPorNome[nome];
                 totalSegurt += globalRawData.segurtPorNome[nome];
             }
@@ -1864,32 +1983,22 @@
             charts.chartSegurt._originalLabels = lSegurtOriginal;
             document.getElementById('kpi-insp').innerText = totalSegurt;
 
-            // 4. INSPECCIONES MANUALES
-            let manualFiltrado = [];
-            let totalManualRealizado = 0;
-
-            if (fPerson === "ALL") {
-                manualFiltrado = [...globalRawData.manual];
-            } else {
-                manualFiltrado = globalRawData.manual.filter(m => nomesCoincidem(m.nome, fPerson));
-            }
+            // 4. INSPECCIONES MANUALES (Filtra por Setor e Pessoa)
+            let manualFiltrado = globalRawData.manual.filter(m => {
+                if (!pessoaPertenceAoSetor(m.nome, fSector)) return false;
+                if (fPerson !== "ALL" && !nomesCoincidem(m.nome, fPerson)) return false;
+                return true;
+            });
 
             manualFiltrado.sort((a, b) => a.nome.localeCompare(b.nome));
 
-            if (fPerson === "ALL") {
-                globalRawData.manual.forEach(m => totalManualRealizado += m.realizado);
-            } else {
-                if (manualFiltrado.length > 0) {
-                    manualFiltrado.forEach(m => totalManualRealizado += m.realizado);
-                } else {
-                    globalRawData.manual.forEach(m => totalManualRealizado += m.realizado);
-                }
-            }
+            let totalManualRealizado = 0;
+            manualFiltrado.forEach(m => totalManualRealizado += m.realizado);
 
             const msgVazio = document.getElementById("msgManualVazio");
             const contManual = document.getElementById("cont-manual");
 
-            if (manualFiltrado.length === 0 && fPerson !== "ALL") {
+            if (manualFiltrado.length === 0 && (fPerson !== "ALL" || fSector !== "ALL")) {
                 if (msgVazio) msgVazio.classList.remove("hidden");
                 document.getElementById('chartManual').style.display = 'none';
             } else {
@@ -1925,11 +2034,12 @@
             }
             document.getElementById('kpi-manual-total').innerText = totalManualRealizado;
 
-            // 5. PENDIENTES CR
+            // 5. PENDIENTES CR (Filtra por Setor e Pessoa)
             let pendFiltrado = {};
             let totalPend = 0;
             for (let p in globalRawData.pendientes) {
-                if (fPerson !== "ALL" && p !== fPerson) continue;
+                if (!pessoaPertenceAoSetor(p, fSector)) continue;
+                if (fPerson !== "ALL" && !nomesCoincidem(p, fPerson)) continue;
                 pendFiltrado[p] = globalRawData.pendientes[p];
                 totalPend += globalRawData.pendientes[p];
             }
@@ -2090,14 +2200,14 @@
             charts.chartHsliderPorArea._metaArray = resultadoSectoresHS;
             charts.chartHsliderPorArea._originalLabels = resultadoSectoresHS.map(x => x.setor);
 
-            // 9. ATRASADOS POR PERSONA (EN EJEC.) - ESTRITAMENTE CONFORME COLUNA T
+            // 9. ATRASADOS POR PERSONA (EN EJEC.)
             let contagemAtrasadosPorPessoa = {};
 
             globalRawData.obra.rowsExecucao.forEach(row => {
                 if (row.isAtrasado && row.resp) {
                     const pessoaNome = row.resp;
 
-                    if (fPerson !== "ALL" && pessoaNome !== fPerson) return;
+                    if (fPerson !== "ALL" && !nomesCoincidem(pessoaNome, fPerson)) return;
 
                     const setorPessoa = obterSetorDaPessoa(pessoaNome);
 
