@@ -603,8 +603,9 @@
             return s.includes("#") ? "S/F" : s;
         };
 
-        async function fetchWorkbookCSVBypass(sheetId, gid) {
-            const targetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+        // Extração de CSV pelo NOME EXATO DA ABA (evita erro de gid errado)
+        async function fetchSheetCSVByName(sheetId, sheetName) {
+            const targetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
             const urlsToTry = [
                 targetUrl,
                 `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
@@ -616,7 +617,7 @@
                     const resp = await fetch(u);
                     if (resp.ok) {
                         const csvText = await resp.text();
-                        if (csvText && csvText.includes("NC")) {
+                        if (csvText && (csvText.includes("NC") || csvText.includes("DESCRIP"))) {
                             const wb = XLSX.read(csvText, { type: 'string' });
                             return wb.Sheets[wb.SheetNames[0]];
                         }
@@ -708,9 +709,9 @@
             ];
 
             const abasCalidad = [
-                { nome: "Contr. NC Cliente", gid: "0" },
-                { nome: "Contr. NC Subcontratista", gid: "309673258" },
-                { nome: "Contr. NC Internas", gid: "2" }
+                "Contr. NC Cliente",
+                "Contr. NC Subcontratista",
+                "Contr. NC Internas"
             ];
 
             const carregarListaHSE = async (id, lista) => {
@@ -727,12 +728,13 @@
             };
 
             const carregarListaCalidad = async (id, lista) => {
-                const resultados = await Promise.all(lista.map(async item => {
-                    let sheet = await fetchWorkbookCSVBypass(id, item.gid);
+                const resultados = await Promise.all(lista.map(async nome => {
+                    // Busca pelo nome exato da aba via CSV ou JSONP
+                    let sheet = await fetchSheetCSVByName(id, nome);
                     if (!sheet) {
-                        sheet = await fetchSheetDataResiliente(id, item.nome);
+                        sheet = await fetchSheetDataResiliente(id, nome);
                     }
-                    return { nome: item.nome, sheet };
+                    return { nome, sheet };
                 }));
                 resultados.forEach(res => {
                     if (res && res.sheet) {
@@ -834,8 +836,8 @@
         const matchStatusFilter = (itemStatus, filterValue) => {
             if (filterValue === "ALL") return true;
             const stClean = superClean(itemStatus);
-            if (filterValue === "ABIERTO") return stClean.includes("ABIER") || stClean.includes("ABERT");
-            if (filterValue === "CONCLUID") return stClean.includes("CONCLU");
+            if (filterValue === "ABIERTO") return stClean.includes("ABIER") || stClean.includes("ABERT") || stClean.includes("PEND");
+            if (filterValue === "CONCLUID") return stClean.includes("CONCLU") || stClean.includes("CERR");
             return stClean.includes(superClean(filterValue));
         };
 
@@ -854,7 +856,6 @@
             onClick: (e, activeElements, chart) => {
                 if (activeElements && activeElements.length > 0) {
                     const idx = activeElements[0].index;
-                    // Usa sempre o nome original completo (sem quebra de linha) para filtrar perfeitamente
                     const originalList = chart._originalLabels || chart.data.labels;
                     const rawLabel = originalList[idx];
                     const label = Array.isArray(rawLabel) ? rawLabel.join(" ") : rawLabel;
@@ -865,7 +866,6 @@
                         aplicarFiltros();
                     } else if (clickType === 'sector') {
                         const currentVal = document.getElementById("filterSector").value;
-                        // Ao clicar na barra de um setor, filtra todas as pessoas daquele setor e limpa o filtro de pessoa individual
                         document.getElementById("filterPerson").value = "ALL";
                         document.getElementById("filterSector").value = (currentVal === label) ? "ALL" : label;
                         aplicarFiltros();
@@ -1003,95 +1003,98 @@
             globalRawData.ncSub = [];
             globalRawData.ncInternas = [];
 
-            const statusValidos = ["ABIERTO", "ABIERTA", "ABERTO", "CONCLUÍDA", "CONCLUIDA", "CONCLUÍDO", "CONCLUIDO", "AGUARDANDO PARECER DO CLIENTE"];
-
+            // 1. Contr. NC Cliente
             const wsCliente = findSheet(wb, "Contr. NC Cliente") || findSheet(wb, "NC Cliente");
             if (wsCliente) {
-                for (let r = 8; r <= 150; r++) {
+                for (let r = 8; r <= 200; r++) {
+                    const cellDesc = wsCliente['B' + r];
+                    const cellNC = wsCliente['D' + r];
                     const cellStatus = wsCliente['K' + r];
-                    if (cellStatus && cellStatus.v !== undefined && cellStatus.v !== null) {
-                        const statusRaw = cellStatus.v.toString().trim().toUpperCase();
-                        if (statusValidos.some(st => statusRaw.includes(st))) {
-                            const desc = wsCliente['B' + r] ? wsCliente['B' + r].v : "";
-                            const ncNum = wsCliente['D' + r] ? wsCliente['D' + r].v : "";
-                            globalRawData.ncCliente.push({
-                                desc: desc ? desc.toString().trim() : "",
-                                ncNum: ncNum ? ncNum.toString().trim() : "",
-                                emision: formatarData(wsCliente['E' + r] ? wsCliente['E' + r].v : ""),
-                                cierrePrev: formatarData(wsCliente['F' + r] ? wsCliente['F' + r].v : ""),
-                                disciplina: wsCliente['G' + r] ? wsCliente['G' + r].v.toString().trim().toUpperCase() : "",
-                                accionElecnor: formatarData(wsCliente['H' + r] ? wsCliente['H' + r].v : ""),
-                                status: statusRaw,
-                                duracion: wsCliente['L' + r] && wsCliente['L' + r].v !== undefined ? wsCliente['L' + r].v : "",
-                                fechaCierre: formatarData(wsCliente['M' + r] ? wsCliente['M' + r].v : ""),
-                                resolucion: wsCliente['N' + r] && wsCliente['N' + r].v !== undefined ? wsCliente['N' + r].v : ""
-                            });
-                        }
+                    const statusRaw = cellStatus && cellStatus.v ? cellStatus.v.toString().trim().toUpperCase() : "";
+                    const descRaw = cellDesc && cellDesc.v ? cellDesc.v.toString().trim() : "";
+                    const ncNumRaw = cellNC && cellNC.v ? cellNC.v.toString().trim() : "";
+
+                    // Ignora linhas vazias ou tabelas de resumo no rodapé
+                    if ((descRaw.length > 5 || ncNumRaw.length > 2) && statusRaw !== "" && !superClean(statusRaw).includes("TOTAL") && !superClean(statusRaw).includes("LEGENDA")) {
+                        globalRawData.ncCliente.push({
+                            desc: descRaw,
+                            ncNum: ncNumRaw,
+                            emision: formatarData(wsCliente['E' + r] ? wsCliente['E' + r].v : ""),
+                            cierrePrev: formatarData(wsCliente['F' + r] ? wsCliente['F' + r].v : ""),
+                            disciplina: wsCliente['G' + r] ? wsCliente['G' + r].v.toString().trim().toUpperCase() : "",
+                            accionElecnor: formatarData(wsCliente['H' + r] ? wsCliente['H' + r].v : ""),
+                            status: statusRaw,
+                            duracion: wsCliente['L' + r] && wsCliente['L' + r].v !== undefined ? wsCliente['L' + r].v : "",
+                            fechaCierre: formatarData(wsCliente['M' + r] ? wsCliente['M' + r].v : ""),
+                            resolucion: wsCliente['N' + r] && wsCliente['N' + r].v !== undefined ? wsCliente['N' + r].v : ""
+                        });
                     }
                 }
             }
 
+            // 2. Contr. NC Subcontratista
             const wsSub = findSheet(wb, "Contr. NC Subcontratista") || findSheet(wb, "Subcontratista");
             if (wsSub) {
-                for (let r = 8; r <= 150; r++) {
+                for (let r = 8; r <= 200; r++) {
+                    const cellDesc = wsSub['B' + r];
                     const cellNC = wsSub['D' + r];
                     const cellStatus = wsSub['L' + r];
-                    if (cellNC && cellNC.v && cellStatus && cellStatus.v) {
-                        const statusRaw = cellStatus.v.toString().trim().toUpperCase();
-                        if (statusValidos.some(st => statusRaw.includes(st))) {
-                            const desc = wsSub['B' + r] ? wsSub['B' + r].v : "";
-                            
-                            // Coluna M = Responsable (exibe exatamente o que está na célula: número ou texto)
-                            let respVal = "";
-                            const cellResp = wsSub['M' + r];
-                            if (cellResp && (cellResp.v !== undefined && cellResp.v !== null || cellResp.w)) {
-                                const rawStr = cellResp.v !== undefined && cellResp.v !== null ? String(cellResp.v) : String(cellResp.w);
-                                const cleanStr = rawStr.replace(/\s+/g, ' ').trim();
-                                if (cleanStr !== "") {
-                                    respVal = cleanStr.toUpperCase();
-                                }
-                            }
+                    const statusRaw = cellStatus && cellStatus.v ? cellStatus.v.toString().trim().toUpperCase() : "";
+                    const descRaw = cellDesc && cellDesc.v ? cellDesc.v.toString().trim() : "";
+                    const ncNumRaw = cellNC && cellNC.v ? cellNC.v.toString().trim() : "";
 
-                            globalRawData.ncSub.push({
-                                desc: desc ? desc.toString().trim() : "",
-                                ncNum: cellNC.v.toString().trim(),
-                                emision: formatarData(wsSub['E' + r] ? wsSub['E' + r].v : ""),
-                                cierrePrev: formatarData(wsSub['F' + r] ? wsSub['F' + r].v : ""),
-                                disciplina: wsSub['G' + r] ? wsSub['G' + r].v.toString().trim().toUpperCase() : "",
-                                accionElecnor: formatarData(wsSub['H' + r] ? wsSub['H' + r].v : ""),
-                                contratista: wsSub['K' + r] ? wsSub['K' + r].v.toString().trim().toUpperCase() : "",
-                                status: statusRaw,
-                                responsable: respVal,
-                                fechaCierre: formatarData(wsSub['N' + r] ? wsSub['N' + r].v : ""),
-                                resolucion: wsSub['O' + r] && wsSub['O' + r].v !== undefined ? wsSub['O' + r].v : ""
-                            });
+                    if ((descRaw.length > 5 || ncNumRaw.length > 2) && statusRaw !== "" && !superClean(statusRaw).includes("TOTAL") && !superClean(statusRaw).includes("LEGENDA")) {
+                        let respVal = "";
+                        const cellResp = wsSub['M' + r];
+                        if (cellResp && (cellResp.v !== undefined && cellResp.v !== null || cellResp.w)) {
+                            const rawStr = cellResp.v !== undefined && cellResp.v !== null ? String(cellResp.v) : String(cellResp.w);
+                            const cleanStr = rawStr.replace(/\s+/g, ' ').trim();
+                            if (cleanStr !== "") {
+                                respVal = cleanStr.toUpperCase();
+                            }
                         }
+
+                        globalRawData.ncSub.push({
+                            desc: descRaw,
+                            ncNum: ncNumRaw,
+                            emision: formatarData(wsSub['E' + r] ? wsSub['E' + r].v : ""),
+                            cierrePrev: formatarData(wsSub['F' + r] ? wsSub['F' + r].v : ""),
+                            disciplina: wsSub['G' + r] ? wsSub['G' + r].v.toString().trim().toUpperCase() : "",
+                            accionElecnor: formatarData(wsSub['H' + r] ? wsSub['H' + r].v : ""),
+                            contratista: wsSub['K' + r] ? wsSub['K' + r].v.toString().trim().toUpperCase() : "",
+                            status: statusRaw,
+                            responsable: respVal,
+                            fechaCierre: formatarData(wsSub['N' + r] ? wsSub['N' + r].v : ""),
+                            resolucion: wsSub['O' + r] && wsSub['O' + r].v !== undefined ? wsSub['O' + r].v : ""
+                        });
                     }
                 }
             }
 
+            // 3. Contr. NC Internas
             const wsInt = findSheet(wb, "Contr. NC Internas") || findSheet(wb, "NC Internas");
             if (wsInt) {
-                for (let r = 8; r <= 150; r++) {
+                for (let r = 8; r <= 200; r++) {
+                    const cellDesc = wsInt['B' + r];
                     const cellNC = wsInt['D' + r];
                     const cellStatus = wsInt['L' + r];
-                    if (cellNC && cellNC.v && cellStatus && cellStatus.v) {
-                        const statusRaw = cellStatus.v.toString().trim().toUpperCase();
-                        if (statusValidos.some(st => statusRaw.includes(st))) {
-                            const desc = wsInt['B' + r] ? wsInt['B' + r].v : "";
-                            globalRawData.ncInternas.push({
-                                desc: desc ? desc.toString().trim() : "",
-                                ncNum: cellNC.v.toString().trim(),
-                                emision: formatarData(wsInt['E' + r] ? wsInt['E' + r].v : ""),
-                                cierrePrev: formatarData(wsInt['F' + r] ? wsInt['F' + r].v : ""),
-                                disciplina: wsInt['G' + r] ? wsInt['G' + r].v.toString().trim().toUpperCase() : "",
-                                accionElecnor: formatarData(wsInt['H' + r] ? wsInt['H' + r].v : ""),
-                                contratista: wsInt['K' + r] ? wsInt['K' + r].v.toString().trim().toUpperCase() : "",
-                                status: statusRaw,
-                                fechaCierre: formatarData(wsInt['N' + r] ? wsInt['N' + r].v : ""),
-                                resolucion: wsInt['O' + r] && wsInt['O' + r].v !== undefined ? wsInt['O' + r].v : ""
-                            });
-                        }
+                    const statusRaw = cellStatus && cellStatus.v ? cellStatus.v.toString().trim().toUpperCase() : "";
+                    const descRaw = cellDesc && cellDesc.v ? cellDesc.v.toString().trim() : "";
+                    const ncNumRaw = cellNC && cellNC.v ? cellNC.v.toString().trim() : "";
+
+                    if ((descRaw.length > 5 || ncNumRaw.length > 2) && statusRaw !== "" && !superClean(statusRaw).includes("TOTAL") && !superClean(statusRaw).includes("LEGENDA")) {
+                        globalRawData.ncInternas.push({
+                            desc: descRaw,
+                            ncNum: ncNumRaw,
+                            emision: formatarData(wsInt['E' + r] ? wsInt['E' + r].v : ""),
+                            cierrePrev: formatarData(wsInt['F' + r] ? wsInt['F' + r].v : ""),
+                            disciplina: wsInt['G' + r] ? wsInt['G' + r].v.toString().trim().toUpperCase() : "",
+                            accionElecnor: formatarData(wsInt['H' + r] ? wsInt['H' + r].v : ""),
+                            contratista: wsInt['K' + r] ? wsInt['K' + r].v.toString().trim().toUpperCase() : "",
+                            status: statusRaw,
+                            fechaCierre: formatarData(wsInt['N' + r] ? wsInt['N' + r].v : ""),
+                            resolucion: wsInt['O' + r] && wsInt['O' + r].v !== undefined ? wsInt['O' + r].v : ""
+                        });
                     }
                 }
             }
@@ -1108,7 +1111,7 @@
                 tbodyCliente.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Cliente para este filtro.</td></tr>`;
             } else {
                 listCliente.forEach(nc => {
-                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
+                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT") || nc.status.includes("PEND");
                     const classStatus = isAbierto ? "td-nc-abierto" : (nc.status.includes("CONCLU") ? "td-nc-concluido" : "text-center font-bold text-gray-800");
                     const classResolucion = getResolucionClass(nc.resolucion);
 
@@ -1139,7 +1142,7 @@
                 tbodySub.innerHTML = `<tr><td colspan="11" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Subcontratista para este filtro.</td></tr>`;
             } else {
                 listSub.forEach(nc => {
-                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
+                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT") || nc.status.includes("PEND");
                     const classStatus = isAbierto ? "td-nc-abierto" : (nc.status.includes("CONCLU") ? "td-nc-concluido" : "text-center font-bold text-gray-800");
                     const classResolucion = getResolucionClass(nc.resolucion);
 
@@ -1171,7 +1174,7 @@
                 tbodyInt.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-gray-500 font-bold normal-case">No se encontraron registros de NC Internas para este filtro.</td></tr>`;
             } else {
                 listInt.forEach(nc => {
-                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT");
+                    const isAbierto = nc.status.includes("ABIER") || nc.status.includes("ABERT") || nc.status.includes("PEND");
                     const classStatus = isAbierto ? "td-nc-abierto" : (nc.status.includes("CONCLU") ? "td-nc-concluido" : "text-center font-bold text-gray-800");
                     const classResolucion = getResolucionClass(nc.resolucion);
 
@@ -1209,7 +1212,6 @@
             return "SIN ÁREA";
         }
 
-        // Verifica se a pessoa pertence ao setor filtrado (usando coincidência de nome exata ou parcial)
         function pessoaPertenceAoSetor(nomePessoa, setorAlvo) {
             if (setorAlvo === "ALL") return true;
             const setorDaPessoa = obterSetorDaPessoa(nomePessoa);
@@ -1241,7 +1243,6 @@
                         vacias = 0;
                         const nome = cell.v.toString().trim().toUpperCase();
                         const clean = superClean(nome);
-                        // Ignora cabeçalhos ou letras soltas de coluna (como "C" ou "K")
                         if (clean && clean.length > 2 && !clean.includes("RESPONSABLE") && !clean.includes("INSPECCION") && !clean.includes("FILTRO")) {
                             globalRawData.segurtPorNome[nome] = (globalRawData.segurtPorNome[nome] || 0) + 1;
                             globalRawData.pessoasList.add(nome);
@@ -1253,7 +1254,7 @@
                 }
             }
 
-            // 2. PLANIFICADAS (Eliminando cabeçalhos falsos "A" e "C" da linha 1)
+            // 2. PLANIFICADAS
             const wsPlan = findSheet(wb, "INSPECCIONESPLANIFICADAS") || findSheet(wb, "PLANIFICADAS");
             if (wsPlan) {
                 const metasEspeciais20 = ["JHERALDY HIDALGO", "ADILTON MORAIS", "MARIA TORRES", "GEORGE BARRAZA"];
@@ -1268,7 +1269,6 @@
                         const nomeOriginal = cellC.v.toString().trim().toUpperCase();
                         const cleanNome = superClean(nomeOriginal);
 
-                        // Ignora cabeçalhos e letras isoladas (como "C" na linha 1)
                         if (cleanNome.length <= 2 || cleanNome.includes("NOMBRE") || cleanNome.includes("APELLIDO") || cleanNome.includes("PERSONA")) continue;
 
                         let setorOriginal = cellA && cellA.v ? cellA.v.toString().trim().toUpperCase() : "SIN ÁREA";
@@ -1677,7 +1677,6 @@
 
             let rows = globalRawData.obra.rowsExecucao;
 
-            // Aplica também o filtro global se selecionado no gráfico de Setor ou Pessoa
             if (fSectorGlobal !== "ALL") {
                 rows = rows.filter(r => r.setor === fSectorGlobal);
             }
@@ -1757,7 +1756,6 @@
             const fMonthNM = document.getElementById("filterMonthNM").value;
             const fMonthHS = document.getElementById("filterMonthHS").value;
 
-            // Atualiza badge de filtro ativo no cabeçalho
             const badgeFiltro = document.getElementById("badgeFiltroAtivo");
             if (badgeFiltro) {
                 if (fSector !== "ALL" || fPerson !== "ALL") {
@@ -1829,7 +1827,6 @@
             let cruzamentoPessoas = [];
             let setoresMap = {};
 
-            // Para calcular o gráfico de Setores completo (sem esconder os outros setores quando clica em um)
             Array.from(mapPessoasConsolidadas.values()).forEach(p => {
                 let realizadoSegurt = 0;
                 let realizadoManual = 0;
@@ -1915,7 +1912,7 @@
             charts.chartPlanificadasRealizadas._metaArray = cruzamentoPessoas;
             charts.chartPlanificadasRealizadas._originalLabels = labelsPlanOriginal;
 
-            // 2. CUMPLIMIENTO POR SECTOR (Destaca o setor selecionado)
+            // 2. CUMPLIMIENTO POR SECTOR
             let resultadoSetores = [];
             for (let s in setoresMap) {
                 const item = setoresMap[s];
@@ -1951,7 +1948,7 @@
             });
             charts.chartCumplimientoSector._originalLabels = resultadoSetores.map(x => x.setor);
 
-            // 3. SEGURT POR PERSONA (Filtra por Setor e Pessoa)
+            // 3. SEGURT POR PERSONA
             let mapSegurtFiltrado = {};
             let totalSegurt = 0;
             for (let nome in globalRawData.segurtPorNome) {
@@ -1983,7 +1980,7 @@
             charts.chartSegurt._originalLabels = lSegurtOriginal;
             document.getElementById('kpi-insp').innerText = totalSegurt;
 
-            // 4. INSPECCIONES MANUALES (Filtra por Setor e Pessoa)
+            // 4. INSPECCIONES MANUALES
             let manualFiltrado = globalRawData.manual.filter(m => {
                 if (!pessoaPertenceAoSetor(m.nome, fSector)) return false;
                 if (fPerson !== "ALL" && !nomesCoincidem(m.nome, fPerson)) return false;
@@ -2034,7 +2031,7 @@
             }
             document.getElementById('kpi-manual-total').innerText = totalManualRealizado;
 
-            // 5. PENDIENTES CR (Filtra por Setor e Pessoa)
+            // 5. PENDIENTES CR
             let pendFiltrado = {};
             let totalPend = 0;
             for (let p in globalRawData.pendientes) {
